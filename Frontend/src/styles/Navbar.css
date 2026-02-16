@@ -70,6 +70,37 @@
   box-shadow: 0 0 10px rgba(124, 58, 237, 0.3);
 }
 
+.nav-user {
+  margin-left: auto;
+}
+
+.user-name {
+  color: #7c3aed;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.nav-logout-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+}
+
+.nav-logout-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.nav-logout-btn:active {
+  transform: translateY(0);
+}
+
 @media (max-width: 768px) {
   .nav-container {
     flex-direction: column;
@@ -85,5 +116,10 @@
 
   .nav-link {
     padding: 0.5rem;
+  }
+
+  .nav-user,
+  .nav-logout-btn {
+    margin-left: 0;
   }
 }

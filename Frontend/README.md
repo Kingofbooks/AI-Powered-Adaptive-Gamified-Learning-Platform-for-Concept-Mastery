@@ -261,5 +261,3 @@ Contributions are welcome! Please follow these steps:
 ---
 
 **Happy Learning! 🚀**
-#   A I - P o w e r e d - A d a p t i v e - G a m i f i e d - L e a r n i n g - P l a t f o r m - f o r - C o n c e p t - M a s t e r y  
- 

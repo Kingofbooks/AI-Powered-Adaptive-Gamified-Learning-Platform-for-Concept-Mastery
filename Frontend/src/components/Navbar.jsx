@@ -1,4 +1,5 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../auth/AuthContext';
 import '../styles/Navbar.css';
 
 /**
@@ -6,8 +7,15 @@ import '../styles/Navbar.css';
  */
 const Navbar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
   const isActive = (path) => location.pathname === path ? 'active' : '';
+
+  const handleLogout = () => {
+    logout();
+    navigate('/auth/role');
+  };
 
   return (
     <nav className="navbar">
@@ -37,6 +45,14 @@ const Navbar = () => {
             <Link to="/progress" className={`nav-link ${isActive('/progress')}`}>
               Progress
             </Link>
+          </li>
+          <li className="nav-item nav-user">
+            {user && <span className="user-name">{user.name}</span>}
+          </li>
+          <li className="nav-item">
+            <button className="nav-logout-btn" onClick={handleLogout}>
+              Logout
+            </button>
           </li>
         </ul>
       </div>
