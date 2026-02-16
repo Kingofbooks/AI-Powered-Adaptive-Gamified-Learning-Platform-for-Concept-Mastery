@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  teacher-ai-agent:
+    build: .
+    container_name: teacher-ai-agent
+    ports:
+      - "8000:8000"
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - .:/app
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+# To use:
+# 1. Create .env file with ANTHROPIC_API_KEY=your_key
+# 2. Run: docker-compose up -d
+# 3. Access: http://localhost:8000
+# 4. Stop: docker-compose down
