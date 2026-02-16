@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Puzzle Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f0f1e 0%, #1a1a2e 100%);
+            color: #e0e0e0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .game-container {
+            background: linear-gradient(135deg, #0f172a 0%, #1a1f3a 100%);
+            border: 2px solid rgba(124, 58, 237, 0.3);
+            border-radius: 1.5rem;
+            padding: 3rem;
+            max-width: 700px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(124, 58, 237, 0.2);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .header h1 {
+            font-size: 2.2rem;
+            margin-bottom: 0.5rem;
+            color: #a78bfa;
+        }
+
+        .header p {
+            color: #a78bfa;
+            opacity: 0.8;
+        }
+
+        .puzzle-board {
+            background: rgba(124, 58, 237, 0.05);
+            padding: 2rem;
+            border-radius: 1rem;
+            margin-bottom: 2rem;
+            border: 2px solid rgba(124, 58, 237, 0.2);
+        }
+
+        .pairs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .column {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .column-title {
+            color: #7c3aed;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .item {
+            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+            color: white;
+            padding: 1rem;
+            border-radius: 0.6rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            font-weight: 500;
+            user-select: none;
+            border: 2px solid transparent;
+        }
+
+        .item:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(124, 58, 237, 0.4);
+        }
+
+        .item.matched {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .item.selected {
+            border-color: #a78bfa;
+            box-shadow: 0 0 15px rgba(124, 58, 237, 0.6);
+        }
+
+        .connection {
+            margin-top: 1rem;
+            padding: 1.5rem;
+            background: rgba(124, 58, 237, 0.1);
+            border-radius: 0.6rem;
+            text-align: center;
+            color: #a78bfa;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 2rem;
+        }
+
+        button {
+            padding: 0.8rem 2rem;
+            border: none;
+            border-radius: 0.6rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(124, 58, 237, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(124, 58, 237, 0.2);
+            color: #7c3aed;
+            border: 2px solid #7c3aed;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(124, 58, 237, 0.3);
+        }
+
+        .score {
+            text-align: center;
+            padding: 2rem 1.5rem;
+            background: rgba(16, 185, 129, 0.1);
+            border-radius: 1rem;
+            margin-top: 1.5rem;
+            border-left: 4px solid #10b981;
+        }
+
+        .score h3 {
+            color: #10b981;
+            margin-bottom: 0.5rem;
+        }
+
+        .score p {
+            color: #a78bfa;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(124, 58, 237, 0.1);
+            border-radius: 3px;
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+            transition: width 0.3s ease;
+        }
+
+        .game-over {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <h1>🧩 Puzzle Game</h1>
+            <p>Match the pairs correctly</p>
+        </div>
+
+        <div class="progress-bar" id="progressContainer">
+            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+        </div>
+
+        <div class="puzzle-board" id="puzzleBoard">
+            <div class="pairs">
+                <div class="column">
+                    <div class="column-title">Concepts</div>
+                    <div id="leftColumn"></div>
+                </div>
+                <div class="column">
+                    <div class="column-title">Definitions</div>
+                    <div id="rightColumn"></div>
+                </div>
+            </div>
+            <div class="connection" id="connectionStatus">Select items to match them</div>
+        </div>
+
+        <div class="buttons">
+            <button class="btn-secondary" onclick="resetGame()">Reset</button>
+            <button class="btn-primary" onclick="skipPuzzle()">Skip Puzzle</button>
+        </div>
+
+        <div class="score game-over" id="scoreContainer">
+            <h3>All Puzzles Matched! 🎉</h3>
+            <p id="scoreText">Perfect Score: 5/5</p>
+            <button class="btn-primary" style="width: 100%; margin-top: 1.5rem;" onclick="finishGame()">Finish Game</button>
+        </div>
+    </div>
+
+    <script>
+        const puzzles = [
+            {
+                pairs: [
+                    { left: "Variable", right: "Container for storing data" },
+                    { left: "Function", right: "Reusable block of code" },
+                    { left: "Loop", right: "Repeats code multiple times" },
+                    { left: "Array", right: "Collection of elements" },
+                    { left: "Object", right: "Collection of key-value pairs" }
+                ]
+            }
+        ];
+
+        let currentPuzzle = 0;
+        let matched = [];
+        let selected = [];
+        let totalPuzzles = puzzles.length;
+
+        function loadPuzzle() {
+            const puzzle = puzzles[currentPuzzle];
+            const shuffledRight = [...puzzle.pairs].sort(() => Math.random() - 0.5);
+
+            const leftColumn = document.getElementById('leftColumn');
+            const rightColumn = document.getElementById('rightColumn');
+            
+            leftColumn.innerHTML = '';
+            rightColumn.innerHTML = '';
+
+            puzzle.pairs.forEach((pair, i) => {
+                const leftItem = document.createElement('div');
+                leftItem.className = 'item';
+                leftItem.textContent = pair.left;
+                leftItem.dataset.index = i;
+                leftItem.dataset.side = 'left';
+                leftItem.onclick = () => selectItem(leftItem);
+                leftColumn.appendChild(leftItem);
+            });
+
+            shuffledRight.forEach((pair, i) => {
+                const rightItem = document.createElement('div');
+                rightItem.className = 'item';
+                rightItem.textContent = pair.right;
+                rightItem.dataset.original = puzzle.pairs.indexOf(pair);
+                rightItem.dataset.side = 'right';
+                rightItem.onclick = () => selectItem(rightItem);
+                rightColumn.appendChild(rightItem);
+            });
+
+            matched = [];
+            selected = [];
+            updateProgress();
+        }
+
+        function selectItem(element) {
+            if (element.classList.contains('matched')) return;
+
+            if (selected.length < 2) {
+                if (!selected.includes(element)) {
+                    element.classList.add('selected');
+                    selected.push(element);
+                }
+            }
+
+            if (selected.length === 2) {
+                checkMatch();
+            }
+        }
+
+        function checkMatch() {
+            const [item1, item2] = selected;
+            const isMatch = item1.dataset.side !== item2.dataset.side &&
+                            (item1.dataset.index !== undefined || item1.dataset.original !== undefined) &&
+                            ((item1.dataset.index === item2.dataset.original) || (item2.dataset.index === item1.dataset.original));
+
+            const connectionStatus = document.getElementById('connectionStatus');
+
+            if (isMatch) {
+                matched.push([item1, item2]);
+                item1.classList.add('matched');
+                item2.classList.add('matched');
+                connectionStatus.textContent = '✓ Correct match!';
+                connectionStatus.style.color = '#10b981';
+            } else {
+                connectionStatus.textContent = '✗ Not a match, try again';
+                connectionStatus.style.color = '#ef4444';
+            }
+
+            setTimeout(() => {
+                selected.forEach(item => item.classList.remove('selected'));
+                selected = [];
+                connectionStatus.textContent = 'Select items to match them';
+                connectionStatus.style.color = '#a78bfa';
+
+                if (matched.length === puzzles[currentPuzzle].pairs.length) {
+                    setTimeout(nextPuzzle, 1000);
+                }
+            }, 1000);
+
+            updateProgress();
+        }
+
+        function updateProgress() {
+            const total = puzzles[currentPuzzle].pairs.length;
+            const percentage = (matched.length / total) * 100;
+            document.getElementById('progressFill').style.width = percentage + '%';
+        }
+
+        function nextPuzzle() {
+            currentPuzzle++;
+            if (currentPuzzle < totalPuzzles) {
+                loadPuzzle();
+            } else {
+                finishGame();
+            }
+        }
+
+        function skipPuzzle() {
+            nextPuzzle();
+        }
+
+        function resetGame() {
+            currentPuzzle = 0;
+            matched = [];
+            selected = [];
+            loadPuzzle();
+        }
+
+        function finishGame() {
+            document.getElementById('puzzleBoard').style.display = 'none';
+            document.querySelector('.buttons').style.display = 'none';
+            document.getElementById('scoreContainer').style.display = 'block';
+        }
+
+        loadPuzzle();
+    </script>
+</body>
+</html>

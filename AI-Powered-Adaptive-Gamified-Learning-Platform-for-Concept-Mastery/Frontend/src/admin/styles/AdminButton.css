@@ -1,0 +1,73 @@
+/* Admin Button Styles */
+.admin-btn {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.admin-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.admin-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.admin-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Variants */
+.admin-btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.admin-btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #5568d3 0%, #6a3d8e 100%);
+}
+
+.admin-btn-secondary {
+  background-color: #e2e8f0;
+  color: #2d3748;
+}
+
+.admin-btn-secondary:hover:not(:disabled) {
+  background-color: #cbd5e0;
+}
+
+.admin-btn-danger {
+  background-color: #f56565;
+  color: white;
+}
+
+.admin-btn-danger:hover:not(:disabled) {
+  background-color: #e53e3e;
+}
+
+/* Sizes */
+.admin-btn-small {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.admin-btn-medium {
+  padding: 10px 16px;
+  font-size: 14px;
+}
+
+.admin-btn-large {
+  padding: 12px 20px;
+  font-size: 16px;
+}
