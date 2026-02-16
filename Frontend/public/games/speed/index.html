@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speed Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f0f1e 0%, #1a1a2e 100%);
+            color: #e0e0e0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .game-container {
+            background: linear-gradient(135deg, #0f172a 0%, #1a1f3a 100%);
+            border: 2px solid rgba(124, 58, 237, 0.3);
+            border-radius: 1.5rem;
+            padding: 3rem;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(124, 58, 237, 0.2);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .header h1 {
+            font-size: 2.2rem;
+            margin-bottom: 0.5rem;
+            color: #a78bfa;
+        }
+
+        .timer {
+            font-size: 3.5rem;
+            color: #7c3aed;
+            font-weight: bold;
+            text-align: center;
+            margin: 2rem 0;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 0.1em;
+        }
+
+        .timer.warning {
+            color: #f59e0b;
+            animation: pulse 0.5s infinite;
+        }
+
+        .timer.danger {
+            color: #ef4444;
+            animation: pulse 0.3s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .problem {
+            background: rgba(124, 58, 237, 0.05);
+            padding: 1.5rem;
+            border-radius: 1rem;
+            margin-bottom: 2rem;
+            border-left: 4px solid #7c3aed;
+            text-align: center;
+        }
+
+        .problem h2 {
+            color: #e0e0e0;
+            font-size: 1.4rem;
+            margin-bottom: 1rem;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        input {
+            flex: 1;
+            padding: 0.8rem;
+            background: rgba(124, 58, 237, 0.1);
+            border: 2px solid rgba(124, 58, 237, 0.3);
+            color: #e0e0e0;
+            border-radius: 0.6rem;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #7c3aed;
+            background: rgba(124, 58, 237, 0.15);
+        }
+
+        .buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 2rem;
+        }
+
+        button {
+            padding: 0.8rem 2rem;
+            border: none;
+            border-radius: 0.6rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+            color: white;
+            flex: 1;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(124, 58, 237, 0.4);
+        }
+
+        .score {
+            text-align: center;
+            padding: 2rem 1.5rem;
+            background: rgba(16, 185, 129, 0.1);
+            border-radius: 1rem;
+            margin-top: 1.5rem;
+            border-left: 4px solid #10b981;
+        }
+
+        .score h3 {
+            color: #10b981;
+            margin-bottom: 0.5rem;
+        }
+
+        .score p {
+            color: #a78bfa;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .stat {
+            background: rgba(124, 58, 237, 0.1);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            color: #7c3aed;
+            font-weight: bold;
+        }
+
+        .stat-label {
+            color: #a78bfa;
+            font-size: 0.85rem;
+            margin-top: 0.3rem;
+        }
+
+        .game-active {
+            display: block;
+        }
+
+        .game-over {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <h1>⚡ Speed Game</h1>
+            <p>Answer as many questions as you can before time runs out!</p>
+        </div>
+
+        <div class="game-active" id="gameActive">
+            <div class="timer" id="timer">60</div>
+
+            <div class="problem" id="problemContainer">
+                <h2 id="problemText">Loading...</h2>
+            </div>
+
+            <div class="input-group">
+                <input type="text" id="answerInput" placeholder="Your answer..." />
+                <button class="btn-primary" onclick="submitAnswerSpeed()">Submit</button>
+            </div>
+        </div>
+
+        <div class="game-over" id="gameOver">
+            <div class="score">
+                <h3>Time's Up! 🎉</h3>
+                <p id="finalScore">Questions Correct: 0</p>
+                <div class="stats">
+                    <div class="stat">
+                        <div class="stat-value" id="totalAttempts">0</div>
+                        <div class="stat-label">Total Attempts</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="accuracy">0%</div>
+                        <div class="stat-label">Accuracy</div>
+                    </div>
+                </div>
+            </div>
+            <button class="btn-primary" style="width: 100%; margin-top: 2rem;" onclick="location.reload()">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        let timeLeft = 60;
+        let correct = 0;
+        let total = 0;
+        let gameActive = true;
+
+        const problems = [
+            { question: "5 + 3 = ?", answer: "8" },
+            { question: "10 - 4 = ?", answer: "6" },
+            { question: "7 × 2 = ?", answer: "14" },
+            { question: "15 ÷ 3 = ?", answer: "5" },
+            { question: "What is 2³?", answer: "8" },
+            { question: "√16 = ?", answer: "4" },
+            { question: "12 + 8 = ?", answer: "20" },
+            { question: "50 - 25 = ?", answer: "25" },
+            { question: "3 × 9 = ?", answer: "27" },
+            { question: "20 ÷ 4 = ?", answer: "5" },
+        ];
+
+        let currentProblemIndex = 0;
+
+        function startTimer() {
+            setInterval(() => {
+                if (!gameActive) return;
+                
+                timeLeft--;
+                const timerEl = document.getElementById('timer');
+                timerEl.textContent = timeLeft;
+
+                if (timeLeft <= 10) {
+                    timerEl.classList.add('warning');
+                }
+                if (timeLeft <= 5) {
+                    timerEl.classList.add('danger');
+                    timerEl.classList.remove('warning');
+                }
+
+                if (timeLeft <= 0) {
+                    endGame();
+                }
+            }, 1000);
+        }
+
+        function showProblem() {
+            const problem = problems[currentProblemIndex % problems.length];
+            document.getElementById('problemText').textContent = problem.question;
+            document.getElementById('answerInput').value = '';
+            document.getElementById('answerInput').focus();
+        }
+
+        function submitAnswerSpeed() {
+            if (!gameActive) return;
+
+            const answer = document.getElementById('answerInput').value.trim();
+            const problem = problems[currentProblemIndex % problems.length];
+
+            total++;
+            if (answer.toLowerCase() === problem.answer.toLowerCase()) {
+                correct++;
+            }
+
+            currentProblemIndex++;
+            showProblem();
+        }
+
+        function endGame() {
+            gameActive = false;
+            document.getElementById('gameActive').classList.remove('game-active');
+            document.getElementById('gameActive').style.display = 'none';
+            document.getElementById('gameOver').classList.add('game-over');
+            document.getElementById('gameOver').style.display = 'block';
+
+            document.getElementById('finalScore').textContent = `Questions Correct: ${correct}/${total}`;
+            document.getElementById('totalAttempts').textContent = total;
+            document.getElementById('accuracy').textContent = total > 0 ? Math.round((correct / total) * 100) + '%' : '0%';
+        }
+
+        document.getElementById('answerInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                submitAnswerSpeed();
+            }
+        });
+
+        showProblem();
+        startTimer();
+    </script>
+</body>
+</html>

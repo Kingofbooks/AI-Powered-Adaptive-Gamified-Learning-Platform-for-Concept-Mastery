@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f0f1e 0%, #1a1a2e 100%);
+            color: #e0e0e0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .game-container {
+            background: linear-gradient(135deg, #0f172a 0%, #1a1f3a 100%);
+            border: 2px solid rgba(124, 58, 237, 0.3);
+            border-radius: 1.5rem;
+            padding: 3rem;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(124, 58, 237, 0.2);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .header h1 {
+            font-size: 2.2rem;
+            margin-bottom: 0.5rem;
+            color: #a78bfa;
+        }
+
+        .header p {
+            color: #a78bfa;
+            opacity: 0.8;
+        }
+
+        .question {
+            background: rgba(124, 58, 237, 0.05);
+            padding: 1.5rem;
+            border-radius: 1rem;
+            margin-bottom: 2rem;
+            border-left: 4px solid #7c3aed;
+        }
+
+        .question h2 {
+            color: #e0e0e0;
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+        }
+
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .option {
+            background: rgba(124, 58, 237, 0.1);
+            border: 2px solid rgba(124, 58, 237, 0.2);
+            padding: 1rem;
+            border-radius: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #a78bfa;
+            font-weight: 500;
+        }
+
+        .option:hover {
+            background: rgba(124, 58, 237, 0.2);
+            border-color: #7c3aed;
+            transform: translateX(5px);
+        }
+
+        .option.selected {
+            background: rgba(124, 58, 237, 0.3);
+            border-color: #7c3aed;
+            color: #e0e0e0;
+        }
+
+        .option.correct {
+            background: rgba(16, 185, 129, 0.2);
+            border-color: #10b981;
+            color: #10b981;
+        }
+
+        .option.incorrect {
+            background: rgba(239, 68, 68, 0.2);
+            border-color: #ef4444;
+            color: #ef4444;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(124, 58, 237, 0.1);
+            border-radius: 3px;
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #7c3aed 0%, #a78bfa 100%);
+            width: 33%;
+            transition: width 0.3s ease;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 2rem;
+        }
+
+        button {
+            padding: 0.8rem 2rem;
+            border: none;
+            border-radius: 0.6rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(124, 58, 237, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .score {
+            text-align: center;
+            padding: 2rem 1.5rem;
+            background: rgba(16, 185, 129, 0.1);
+            border-radius: 1rem;
+            margin-top: 1.5rem;
+            border-left: 4px solid #10b981;
+        }
+
+        .score h3 {
+            color: #10b981;
+            margin-bottom: 0.5rem;
+        }
+
+        .score p {
+            color: #a78bfa;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <h1>🎯 Quiz Game</h1>
+            <p>Answer the questions correctly to earn points</p>
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <div class="question" id="questionContainer">
+            <h2 id="questionText">Loading question...</h2>
+            <div class="options" id="optionsContainer">
+                <div class="option">Loading options...</div>
+            </div>
+        </div>
+
+        <div class="buttons">
+            <button class="btn-primary" onclick="skipQuestion()">Skip</button>
+            <button class="btn-primary" onclick="submitAnswer()">Submit Answer</button>
+        </div>
+
+        <div class="score" id="scoreContainer" style="display:none;">
+            <h3>Quiz Complete! 🎉</h3>
+            <p id="scoreText">Your Score: 0/0</p>
+        </div>
+    </div>
+
+    <script>
+        let currentQuestion = 0;
+        let score = 0;
+        const totalQuestions = 5;
+
+        const questions = [
+            {
+                text: "What is the output of: console.log(typeof undefined)?",
+                options: ["undefined", "null", "void", "boolean"],
+                correct: 0
+            },
+            {
+                text: "Which method is used to add elements at the end of an array?",
+                options: ["add()", "push()", "insert()", "append()"],
+                correct: 1
+            },
+            {
+                text: "What does JSON stand for?",
+                options: ["JavaScript Object Notation", "JavaScript Open Network", "Java Serial Object Name", "None of above"],
+                correct: 0
+            },
+            {
+                text: "Which of the following is a primitive data type?",
+                options: ["Array", "String", "Object", "Function"],
+                correct: 1
+            },
+            {
+                text: "What is the result of 5 + '5' in JavaScript?",
+                options: ["10", "55", "'55'", "NaN"],
+                correct: 2
+            }
+        ];
+
+        let selectedAnswer = null;
+
+        function updateQuestion() {
+            if (currentQuestion >= totalQuestions) {
+                showScore();
+                return;
+            }
+
+            const question = questions[currentQuestion];
+            document.getElementById('questionText').textContent = `Question ${currentQuestion + 1}: ${question.text}`;
+            
+            const optionsContainer = document.getElementById('optionsContainer');
+            optionsContainer.innerHTML = '';
+            
+            question.options.forEach((option, index) => {
+                const optionDiv = document.createElement('div');
+                optionDiv.className = 'option';
+                optionDiv.textContent = option;
+                optionDiv.onclick = () => selectOption(index);
+                optionsContainer.appendChild(optionDiv);
+            });
+
+            selectedAnswer = null;
+            updateProgressBar();
+        }
+
+        function selectOption(index) {
+            selectedAnswer = index;
+            document.querySelectorAll('.option').forEach((el, i) => {
+                el.classList.toggle('selected', i === index);
+            });
+        }
+
+        function submitAnswer() {
+            if (selectedAnswer === null) {
+                alert('Please select an answer');
+                return;
+            }
+
+            if (selectedAnswer === questions[currentQuestion].correct) {
+                score++;
+                document.querySelectorAll('.option')[selectedAnswer].classList.add('correct');
+            } else {
+                const correctIndex = questions[currentQuestion].correct;
+                document.querySelectorAll('.option')[correctIndex].classList.add('correct');
+                document.querySelectorAll('.option')[selectedAnswer].classList.add('incorrect');
+            }
+
+            setTimeout(() => {
+                currentQuestion++;
+                updateQuestion();
+            }, 1500);
+        }
+
+        function skipQuestion() {
+            currentQuestion++;
+            updateQuestion();
+        }
+
+        function updateProgressBar() {
+            const progress = ((currentQuestion) / totalQuestions) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+        }
+
+        function showScore() {
+            document.getElementById('questionContainer').style.display = 'none';
+            document.querySelector('.buttons').style.display = 'none';
+            document.getElementById('scoreContainer').style.display = 'block';
+            document.getElementById('scoreText').textContent = `Your Score: ${score}/${totalQuestions} - ${Math.round((score/totalQuestions) * 100)}%`;
+        }
+
+        updateQuestion();
+    </script>
+</body>
+</html>

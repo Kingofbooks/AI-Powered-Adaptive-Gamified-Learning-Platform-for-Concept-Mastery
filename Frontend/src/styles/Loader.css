@@ -1,0 +1,64 @@
+/* Loader Styling */
+
+.loader-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  gap: 1.5rem;
+}
+
+.loader {
+  border: 3px solid rgba(124, 58, 237, 0.1);
+  border-top: 3px solid #7c3aed;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.loader-small {
+  width: 30px;
+  height: 30px;
+}
+
+.loader-medium {
+  width: 50px;
+  height: 50px;
+}
+
+.loader-large {
+  width: 70px;
+  height: 70px;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.loader-text {
+  color: #a78bfa;
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin: 0;
+  text-align: center;
+}
+
+@media (max-width: 600px) {
+  .loader-container {
+    padding: 2rem;
+  }
+
+  .loader-large {
+    width: 50px;
+    height: 50px;
+  }
+
+  .loader-text {
+    font-size: 1rem;
+  }
+}
