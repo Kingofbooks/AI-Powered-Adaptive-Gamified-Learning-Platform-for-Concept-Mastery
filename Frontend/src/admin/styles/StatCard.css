@@ -1,0 +1,70 @@
+/* Stat Card Styles */
+.stat-card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border-left: 4px solid;
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+}
+
+.stat-card-blue {
+  border-left-color: #667eea;
+}
+
+.stat-card-purple {
+  border-left-color: #764ba2;
+}
+
+.stat-card-green {
+  border-left-color: #48bb78;
+}
+
+.stat-card-orange {
+  border-left-color: #ed8936;
+}
+
+.stat-icon {
+  font-size: 32px;
+  min-width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+}
+
+.stat-info {
+  flex: 1;
+}
+
+.stat-label {
+  margin: 0 0 4px 0;
+  color: #718096;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-value {
+  margin: 0 0 4px 0;
+  color: #2d3748;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.stat-subtitle {
+  margin: 0;
+  color: #a0aec0;
+  font-size: 12px;
+}
