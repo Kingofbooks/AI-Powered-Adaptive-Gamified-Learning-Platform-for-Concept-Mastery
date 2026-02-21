@@ -3,21 +3,24 @@ Integrated Backend API
 Main server that connects AI engine, database, and frontend
 """
 
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, Header
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from datetime import datetime
+from typing import Optional
 import logging
 
 # Import database and models
 from database import init_db, get_db
+from auth import create_access_token, decode_access_token
 from schemas import (
     UserCreate, UserLogin, UserResponse, UserStats,
     GameRequest, GameResponse, GameResultResponse,
     ProgressResponse, UserProgressResponse,
     LearningPathCreate, LearningPathResponse,
     DashboardResponse, ConceptDetailResponse,
-    QuizSubmission, PuzzleSubmission, SpeedSubmission
+    QuizSubmission, PuzzleSubmission, SpeedSubmission,
+    RegisterRequest, LoginRequest, TokenResponse, UserRoleEnum
 )
 from services import (
     UserService, GameService, ConceptService,
@@ -43,6 +46,68 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ============================================
+# DEPENDENCY INJECTION
+# ============================================
+
+def get_current_user(
+    authorization: Optional[str] = Header(None),
+    db: Session = Depends(get_db)
+) -> dict:
+    """
+    Dependency to verify JWT token and get current user
+    
+    Usage: @app.get("/protected")
+           async def protected_route(current_user = Depends(get_current_user)):
+    """
+    
+    if not authorization:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authorization header missing"
+        )
+    
+    try:
+        # Extract token from "Bearer <token>"
+        scheme, token = authorization.split()
+        if scheme.lower() != "bearer":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid authentication scheme"
+            )
+        
+        # Decode token
+        payload = decode_access_token(token)
+        if not payload:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid or expired token"
+            )
+        
+        # Get user from database
+        user_id = payload.get("sub")
+        user = UserService.get_user(db, user_id)
+        
+        if not user or not user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User not found or inactive"
+            )
+        
+        return {"user": user, "payload": payload}
+        
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authorization header format"
+        )
+    except Exception as e:
+        logger.error(f"Auth error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication failed"
+        )
 
 # Initialize database on startup
 @app.on_event("startup")
@@ -79,13 +144,221 @@ async def health_check():
 
 
 # ============================================
+# AUTHENTICATION ENDPOINTS
+# ============================================
+
+@app.post("/auth/register", response_model=TokenResponse)
+async def register(request: RegisterRequest, db: Session = Depends(get_db)):
+    """
+    📝 Register New User
+    
+    Register a new user account (Student or Teacher).
+    
+    Request JSON:
+    ```json
+    {
+        "name": "John Doe",
+        "email": "john@example.com",
+        "username": "johndoe",
+        "password": "SecurePassword123!",
+        "role": "student",
+        "college": "MIT",
+        "department": "Computer Science",
+        "year": "2nd Year"
+    }
+    ```
+    
+    For Teachers:
+    ```json
+    {
+        "name": "Jane Smith",
+        "email": "jane@example.com",
+        "username": "janesmith",
+        "password": "SecurePassword123!",
+        "role": "teacher",
+        "experience": "5 years",
+        "subjects": ["Mathematics", "Physics"]
+    }
+    ```
+    
+    Returns: Access token and user info
+    """
+    try:
+        # Register the user
+        user, message = UserService.register_user(
+            db,
+            name=request.name,
+            email=request.email,
+            username=request.username,
+            password=request.password,
+            role=request.role,
+            college=request.college,
+            department=request.department,
+            year=request.year,
+            experience=request.experience,
+            subjects=request.subjects
+        )
+        
+        # Create JWT token
+        access_token = create_access_token(
+            data={
+                "sub": user.id,
+                "username": user.username,
+                "email": user.email,
+                "role": user.role.value
+            }
+        )
+        
+        logger.info(f"✅ User registered: {user.username}")
+        
+        return TokenResponse(
+            access_token=access_token,
+            token_type="bearer",
+            user=UserResponse(
+                id=user.id,
+                username=user.username,
+                email=user.email,
+                name=user.name,
+                role=UserRoleEnum(user.role.value),
+                created_at=user.created_at,
+                is_active=user.is_active,
+                level=getattr(user, 'level', None),
+                total_score=getattr(user, 'total_score', 0),
+                total_games_played=getattr(user, 'total_games_played', 0),
+                college=getattr(user, 'college', None),
+                department=getattr(user, 'department', None),
+                year=getattr(user, 'year', None),
+                experience=getattr(user, 'experience', None),
+                subjects=getattr(user, 'subjects', None)
+            )
+        )
+        
+    except ValueError as e:
+        logger.warning(f"Registration validation error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        import traceback
+        logger.error(f"Registration error: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Registration failed: {str(e)}"
+        )
+
+
+@app.post("/auth/login", response_model=TokenResponse)
+async def login(request: LoginRequest, db: Session = Depends(get_db)):
+    """
+    🔐 User Login
+    
+    Authenticate user with email and password.
+    
+    Request JSON:
+    ```json
+    {
+        "email": "john@example.com",
+        "password": "SecurePassword123!",
+        "role": "student"
+    }
+    ```
+    
+    Returns: Access token and user info
+    """
+    try:
+        # Authenticate user
+        user = UserService.authenticate_user(
+            db,
+            email=request.email,
+            password=request.password,
+            role=request.role
+        )
+        
+        if not user:
+            logger.warning(f"Failed login attempt for {request.email} as {request.role.value}")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid email, password, or role"
+            )
+        
+        # Create JWT token
+        access_token = create_access_token(
+            data={
+                "sub": user.id,
+                "username": user.username,
+                "email": user.email,
+                "role": user.role.value
+            }
+        )
+        
+        logger.info(f"✅ User logged in: {user.username}")
+        
+        return TokenResponse(
+            access_token=access_token,
+            token_type="bearer",
+            user=UserResponse(
+                id=user.id,
+                username=user.username,
+                email=user.email,
+                name=user.name,
+                role=UserRoleEnum(user.role.value),
+                created_at=user.created_at,
+                is_active=user.is_active,
+                level=getattr(user, 'level', None),
+                total_score=getattr(user, 'total_score', 0),
+                total_games_played=getattr(user, 'total_games_played', 0),
+                college=getattr(user, 'college', None),
+                department=getattr(user, 'department', None),
+                year=getattr(user, 'year', None),
+                experience=getattr(user, 'experience', None),
+                subjects=getattr(user, 'subjects', None)
+            )
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Login error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Login failed"
+        )
+
+
+@app.get("/auth/verify")
+async def verify_token(current_user = Depends(get_current_user)):
+    """
+    ✅ Verify Token
+    
+    Verify that the provided JWT token is valid.
+    
+    Headers:
+    ```
+    Authorization: Bearer <token>
+    ```
+    
+    Returns: User info and token validity
+    """
+    user = current_user["user"]
+    return {
+        "valid": True,
+        "user_id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "role": user.role.value,
+        "message": "Token is valid"
+    }
+
+# ============================================
 # USER ENDPOINTS
 # ============================================
 
 @app.post("/users/register", response_model=UserResponse)
 async def register_user(user: UserCreate, db: Session = Depends(get_db)):
     """
-    👤 Register New User
+    👤 Register New User (Legacy)
     
     Create a new student account.
     
@@ -121,7 +394,7 @@ async def register_user(user: UserCreate, db: Session = Depends(get_db)):
 @app.post("/users/login", response_model=UserResponse)
 async def login_user(credentials: UserLogin, db: Session = Depends(get_db)):
     """
-    🔐 User Login
+    🔐 User Login (Legacy)
     
     Authenticate user with username and password.
     
@@ -157,6 +430,39 @@ async def get_user(user_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="User not found")
     
     return user
+
+
+@app.get("/users/me")
+async def get_current_user_profile(current_user = Depends(get_current_user)):
+    """
+    👤 Get Current User Profile
+    
+    Retrieve the authenticated user's profile information.
+    
+    Headers:
+    ```
+    Authorization: Bearer <token>
+    ```
+    """
+    user = current_user["user"]
+    user_data = UserResponse(
+        id=user.id,
+        username=user.username,
+        email=user.email,
+        name=user.name,
+        role=UserRoleEnum(user.role.value),
+        created_at=user.created_at,
+        is_active=user.is_active,
+        level=getattr(user, 'level', None),
+        total_score=getattr(user, 'total_score', 0),
+        total_games_played=getattr(user, 'total_games_played', 0),
+        college=getattr(user, 'college', None),
+        department=getattr(user, 'department', None),
+        year=getattr(user, 'year', None),
+        experience=getattr(user, 'experience', None),
+        subjects=getattr(user, 'subjects', None)
+    )
+    return user_data
 
 
 @app.get("/users/{user_id}/stats", response_model=UserStats)

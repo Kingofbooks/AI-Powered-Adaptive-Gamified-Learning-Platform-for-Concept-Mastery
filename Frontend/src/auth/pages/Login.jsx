@@ -1,27 +1,21 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
-import * as authService from '../authService';
 import AuthLayout from '../components/AuthLayout';
 import AuthInput from '../components/AuthInput';
 import '../styles/Auth.css';
 
 /**
  * Login - User login page
+ * Supports Student, Teacher, and Admin login
  */
 function Login() {
   const navigate = useNavigate();
-  const { role, login } = useAuth();
+  const { role, loginWithEmail } = useAuth();
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState('');
-
-  // Demo credentials hint
-  const demoCredentials = {
-    admin: { email: 'admin@example.com', password: 'admin123' },
-    user: { email: 'student@example.com', password: 'student123' },
-  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -57,28 +51,23 @@ function Login() {
     setApiError('');
 
     try {
-      const response = await authService.login(
+      const result = await loginWithEmail(
         formData.email,
         formData.password,
         role
       );
 
-      if (response.success) {
-        // Login successful
-        login({
-          user: response.user,
-          role: role,
-          token: response.token,
-        });
-
-        // Redirect based on role
-        if (role === 'user') {
+      if (result.success) {
+        // Login successful - redirect based on role
+        if (role === 'student') {
           navigate('/dashboard');
+        } else if (role === 'teacher') {
+          navigate('/teacher/dashboard');
         } else if (role === 'admin') {
           navigate('/admin');
         }
       } else {
-        setApiError(response.error || 'Login failed');
+        setApiError(result.error || 'Login failed');
       }
     } catch (error) {
       setApiError('An error occurred. Please try again.');
@@ -88,12 +77,22 @@ function Login() {
     }
   };
 
-  const demo = demoCredentials[role] || demoCredentials.user;
+  const roleLabel = {
+    student: 'Student',
+    teacher: 'Teacher',
+    admin: 'Admin',
+  }[role] || 'User';
+
+  const roleIcon = {
+    student: '👤',
+    teacher: '👨‍🏫',
+    admin: '⚙️',
+  }[role] || '👤';
 
   return (
     <AuthLayout
       title="Sign In"
-      subtitle={`Login as ${role === 'admin' ? 'Admin' : 'Student'}`}
+      subtitle={`${roleIcon} Login as ${roleLabel}`}
       footerText="Don't have an account?"
       footerLink={{ href: '/auth/register', text: 'Sign Up' }}
     >
@@ -140,16 +139,6 @@ function Login() {
           {isLoading ? 'Signing in...' : 'Sign In'}
         </button>
 
-        <div className="demo-info">
-          <p className="demo-title">Demo Credentials:</p>
-          <p className="demo-text">
-            📧 <strong>{demo.email}</strong>
-          </p>
-          <p className="demo-text">
-            🔐 <strong>{demo.password}</strong>
-          </p>
-        </div>
-
         <div className="auth-divider">
           <span>or</span>
         </div>
@@ -158,7 +147,7 @@ function Login() {
           type="button"
           className="auth-btn secondary"
           onClick={() => {
-            // Clear role and go back to role selection
+            // Go back to role selection
             navigate('/auth/role');
           }}
         >

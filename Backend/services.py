@@ -5,12 +5,14 @@ Handles coordination between database, AI engine, and API
 
 import json
 from datetime import datetime, timedelta
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Tuple
 from sqlalchemy.orm import Session
 from teacher_ai_agent import TeacherAIAgent
 from database import (
-    User, Concept, GameResult, Progress, LearningPath, CacheData
+    User, Concept, GameResult, Progress, LearningPath, CacheData, UserRole
 )
+from auth import hash_password, verify_password, create_access_token
+from schemas import UserRoleEnum
 import logging
 import os
 from dotenv import load_dotenv
@@ -42,13 +44,118 @@ class UserService:
     """Handle user-related operations"""
     
     @staticmethod
+    def register_user(
+        db: Session,
+        name: str,
+        email: str,
+        username: str,
+        password: str,
+        role: UserRoleEnum,
+        **kwargs
+    ) -> Tuple[User, str]:
+        """
+        Register a new user (Student or Teacher)
+        
+        Args:
+            db: Database session
+            name: Full name
+            email: Email address
+            username: Username
+            password: Plain password (will be hashed)
+            role: User role (student, teacher, admin)
+            **kwargs: Additional fields (college, department, year, experience, subjects)
+        
+        Returns:
+            Tuple of (User object, success message)
+        """
+        
+        # Check if user already exists
+        existing_user = db.query(User).filter(
+            (User.email == email) | (User.username == username)
+        ).first()
+        
+        if existing_user:
+            raise ValueError("Email or username already registered")
+        
+        # Hash password
+        password_hash = hash_password(password)
+        
+        # Create user
+        db_user = User(
+            name=name,
+            email=email,
+            username=username,
+            password_hash=password_hash,
+            role=UserRole[role.name],  # Convert to UserRole enum using name
+            is_active=True
+        )
+        
+        # Add role-specific fields
+        if role == UserRoleEnum.STUDENT:
+            db_user.college = kwargs.get('college')
+            db_user.department = kwargs.get('department')
+            db_user.year = kwargs.get('year')
+            db_user.level = "beginner"
+        elif role == UserRoleEnum.TEACHER:
+            db_user.experience = kwargs.get('experience')
+            db_user.subjects = kwargs.get('subjects', [])
+        
+        db.add(db_user)
+        db.commit()
+        db.refresh(db_user)
+        
+        logger.info(f"Registered new {role.value}: {username}")
+        return db_user, f"User {username} created successfully"
+    
+    @staticmethod
+    def authenticate_user(
+        db: Session,
+        email: str,
+        password: str,
+        role: UserRoleEnum
+    ) -> Optional[User]:
+        """
+        Authenticate a user by email and password
+        
+        Args:
+            db: Database session
+            email: Email address
+            password: Plain password to verify
+            role: Expected user role
+        
+        Returns:
+            User object if authentication successful, None otherwise
+        """
+        
+        user = db.query(User).filter(
+            (User.email == email) & (User.role == UserRole[role.name])
+        ).first()
+        
+        if not user or not user.is_active:
+            return None
+        
+        # Verify password
+        if not verify_password(password, user.password_hash):
+            return None
+        
+        # Update last login
+        user.last_login = datetime.utcnow()
+        db.commit()
+        
+        logger.info(f"User authenticated: {user.username}")
+        return user
+    
+    @staticmethod
     def create_user(db: Session, username: str, email: str, password: str, level: str = "beginner") -> User:
-        """Create a new user"""
+        """Create a new user (for backward compatibility)"""
+        password_hash = hash_password(password)
         db_user = User(
             username=username,
             email=email,
-            password_hash=password,  # In production: hash password
-            level=level
+            name=username,
+            password_hash=password_hash,
+            level=level,
+            role=UserRole.STUDENT
         )
         db.add(db_user)
         db.commit()
@@ -67,6 +174,11 @@ class UserService:
         return db.query(User).filter(User.username == username).first()
     
     @staticmethod
+    def get_user_by_email(db: Session, email: str) -> Optional[User]:
+        """Get user by email"""
+        return db.query(User).filter(User.email == email).first()
+    
+    @staticmethod
     def get_user_stats(db: Session, user_id: int) -> Dict[str, Any]:
         """Get user statistics"""
         user = UserService.get_user(db, user_id)
@@ -83,7 +195,7 @@ class UserService:
                 "total_games": 0,
                 "average_accuracy": 0,
                 "concepts_mastered": 0,
-                "current_level": user.level
+                "current_level": user.level if user.level else "beginner"
             }
         
         total_score = sum(r.score for r in results)
@@ -99,10 +211,12 @@ class UserService:
             "total_games": len(results),
             "average_accuracy": round(avg_accuracy, 2),
             "concepts_mastered": mastered,
-            "current_level": user.level
+            "current_level": user.level if user.level else "beginner"
         }
 
 
+# ============================================
+# CONCEPT SERVICES
 # ============================================
 # CONCEPT SERVICES
 # ============================================

@@ -3,13 +3,18 @@ Database Configuration and Models
 Handles all data persistence for users, games, and progress tracking
 """
 
-from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, Boolean, JSON, ForeignKey, Text
+from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, Boolean, JSON, ForeignKey, Text, Enum
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from datetime import datetime
+from dotenv import load_dotenv
 import os
+import enum
 
-# Database setup (uses SQLite for simplicity, easily switchable to PostgreSQL)
+# Load environment variables first
+load_dotenv()
+
+# Database setup
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./game_platform.db")
 
 # Create engine
@@ -25,30 +30,52 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 # ============================================
+# ENUMS
+# ============================================
+
+class UserRole(str, enum.Enum):
+    """User role enumeration"""
+    STUDENT = "student"
+    TEACHER = "teacher"
+    ADMIN = "admin"
+
+# ============================================
 # DATABASE MODELS
 # ============================================
 
 class User(Base):
-    """Student user model"""
+    """User model - supports both Student and Teacher"""
     __tablename__ = "users"
     
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True)
     email = Column(String, unique=True, index=True)
-    password_hash = Column(String)  # In production, use proper hashing
+    name = Column(String)  # Full name
+    password_hash = Column(String)  # Proper hashing in production
+    role = Column(Enum(UserRole), default=UserRole.STUDENT, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     last_login = Column(DateTime)
     is_active = Column(Boolean, default=True)
+    
+    # Student-specific fields
     level = Column(String, default="beginner")  # beginner, intermediate, advanced
     total_score = Column(Integer, default=0)
     total_games_played = Column(Integer, default=0)
+    college = Column(String)  # For students
+    department = Column(String)  # For students
+    year = Column(String)  # For students
+    
+    # Teacher-specific fields
+    experience = Column(String)  # Teaching experience level
+    subjects = Column(JSON)  # List of subjects taught
+    classes = Column(JSON)  # List of class IDs managed
     
     # Relationships
-    game_results = relationship("GameResult", back_populates="user", cascade="all, delete-orphan")
+    game_results = relationship("GameResult", back_populates="user", cascade="all, delete-orphan", foreign_keys="GameResult.user_id")
     progress = relationship("Progress", back_populates="user", cascade="all, delete-orphan")
     
     def __repr__(self):
-        return f"<User {self.username}>"
+        return f"<User {self.username} ({self.role.value})>"
 
 
 class Concept(Base):

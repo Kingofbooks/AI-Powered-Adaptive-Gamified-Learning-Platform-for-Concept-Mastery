@@ -1,25 +1,29 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
-import * as authService from '../authService';
 import AuthLayout from '../components/AuthLayout';
 import AuthInput from '../components/AuthInput';
 import '../styles/Auth.css';
 
 /**
  * Register - User registration page
+ * Supports Student and Teacher registration
  */
 function Register() {
   const navigate = useNavigate();
-  const { role } = useAuth();
+  const { role, register } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     confirmPassword: '',
+    // Student fields
     college: '',
     department: '',
     year: '',
+    // Teacher fields
+    experience: '',
+    subjects: '',
   });
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
@@ -62,7 +66,7 @@ function Register() {
     }
 
     // Student-specific validation
-    if (role === 'user') {
+    if (role === 'student') {
       if (!formData.college.trim()) {
         newErrors.college = 'College name is required';
       }
@@ -71,6 +75,16 @@ function Register() {
       }
       if (!formData.year.trim()) {
         newErrors.year = 'Year of study is required';
+      }
+    }
+
+    // Teacher-specific validation
+    if (role === 'teacher') {
+      if (!formData.experience.trim()) {
+        newErrors.experience = 'Experience is required';
+      }
+      if (!formData.subjects.trim()) {
+        newErrors.subjects = 'At least one subject is required';
       }
     }
 
@@ -91,16 +105,41 @@ function Register() {
     setSuccess('');
 
     try {
-      const response = await authService.register(formData, role);
+      // Prepare payload for registration
+      const payload = {
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+      };
 
-      if (response.success) {
-        setSuccess(response.message);
-        // Redirect to login after brief delay
+      // Add role-specific fields
+      if (role === 'student') {
+        payload.college = formData.college;
+        payload.department = formData.department;
+        payload.year = formData.year;
+      } else if (role === 'teacher') {
+        payload.experience = formData.experience;
+        // Convert subjects string to array
+        payload.subjects = formData.subjects
+          .split(',')
+          .map((s) => s.trim())
+          .filter((s) => s);
+      }
+
+      const result = await register(payload, role);
+
+      if (result.success) {
+        setSuccess('Registration successful! Logging you in...');
+        // Auto-login successful, redirect to dashboard
         setTimeout(() => {
-          navigate('/auth/login');
+          if (role === 'student') {
+            navigate('/dashboard');
+          } else if (role === 'teacher') {
+            navigate('/teacher/dashboard');
+          }
         }, 1500);
       } else {
-        setApiError(response.error || 'Registration failed');
+        setApiError(result.error || 'Registration failed');
       }
     } catch (error) {
       setApiError('An error occurred. Please try again.');
@@ -110,10 +149,20 @@ function Register() {
     }
   };
 
+  const roleLabel = {
+    student: 'Student',
+    teacher: 'Teacher',
+  }[role] || 'User';
+
+  const roleIcon = {
+    student: '👤',
+    teacher: '👨‍🏫',
+  }[role] || '👤';
+
   return (
     <AuthLayout
       title="Create Account"
-      subtitle={`Sign up as ${role === 'admin' ? 'Admin' : 'Student'}`}
+      subtitle={`${roleIcon} Sign up as ${roleLabel}`}
       footerText="Already have an account?"
       footerLink={{ href: '/auth/login', text: 'Sign In' }}
     >
@@ -142,14 +191,14 @@ function Register() {
           required
         />
 
-        {role === 'user' && (
+        {role === 'student' && (
           <>
             <AuthInput
               label="College/University"
               name="college"
               value={formData.college}
               onChange={handleChange}
-              placeholder="e.g., ABC University"
+              placeholder="e.g., MIT"
               error={errors.college}
               required
             />
@@ -171,6 +220,30 @@ function Register() {
               onChange={handleChange}
               placeholder="e.g., 2nd Year"
               error={errors.year}
+              required
+            />
+          </>
+        )}
+
+        {role === 'teacher' && (
+          <>
+            <AuthInput
+              label="Teaching Experience"
+              name="experience"
+              value={formData.experience}
+              onChange={handleChange}
+              placeholder="e.g., 5 years"
+              error={errors.experience}
+              required
+            />
+
+            <AuthInput
+              label="Subjects (comma-separated)"
+              name="subjects"
+              value={formData.subjects}
+              onChange={handleChange}
+              placeholder="e.g., Mathematics, Physics"
+              error={errors.subjects}
               required
             />
           </>

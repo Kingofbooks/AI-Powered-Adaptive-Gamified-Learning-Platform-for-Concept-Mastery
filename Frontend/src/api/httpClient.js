@@ -5,8 +5,18 @@
 
 class HttpClient {
   constructor() {
-    this.baseURL = import.meta.env.VITE_APP_API_URL || 'http://localhost:3001/api';
+    // Use either VITE env variable or default to localhost
+    // For authentication, we use a different base URL (no /api path)
+    this.baseURL = import.meta.env.VITE_APP_API_URL || 'http://localhost:8000/api';
+    this.authBaseURL = import.meta.env.VITE_APP_AUTH_URL || 'http://localhost:8000';
     this.timeout = 30000;
+  }
+
+  /**
+   * Get the base API URL for auth endpoints
+   */
+  getAuthBaseURL() {
+    return this.authBaseURL;
   }
 
   /**
@@ -78,4 +88,13 @@ class HttpClient {
   }
 }
 
-export default new HttpClient();
+const httpClient = new HttpClient();
+
+/**
+ * Get the API URL for authentication endpoints
+ */
+export const getApiUrl = () => {
+  return httpClient.getAuthBaseURL();
+};
+
+export default httpClient;

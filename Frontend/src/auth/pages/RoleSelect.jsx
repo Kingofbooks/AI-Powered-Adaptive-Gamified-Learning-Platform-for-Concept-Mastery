@@ -4,7 +4,8 @@ import AuthLayout from '../components/AuthLayout';
 import '../styles/Auth.css';
 
 /**
- * RoleSelect - First page where user chooses Admin or User role
+ * RoleSelect - First page where user chooses their role
+ * Supports Student, Teacher, and Admin
  */
 function RoleSelect() {
   const navigate = useNavigate();
@@ -22,8 +23,9 @@ function RoleSelect() {
     >
       <div className="role-selection">
         <button
-          className="role-card user-role"
-          onClick={() => handleRoleSelect('user')}
+          className="role-card student-role"
+          onClick={() => handleRoleSelect('student')}
+          title="I am a student learning concepts"
         >
           <span className="role-icon">👤</span>
           <span className="role-title">Student</span>
@@ -31,12 +33,23 @@ function RoleSelect() {
         </button>
 
         <button
+          className="role-card teacher-role"
+          onClick={() => handleRoleSelect('teacher')}
+          title="I am a teacher creating content"
+        >
+          <span className="role-icon">👨‍🏫</span>
+          <span className="role-title">Teacher</span>
+          <span className="role-description">Create & manage content</span>
+        </button>
+
+        <button
           className="role-card admin-role"
           onClick={() => handleRoleSelect('admin')}
+          title="I am an administrator"
         >
           <span className="role-icon">⚙️</span>
           <span className="role-title">Admin</span>
-          <span className="role-description">Manage content & analytics</span>
+          <span className="role-description">Manage platform & analytics</span>
         </button>
       </div>
     </AuthLayout>
