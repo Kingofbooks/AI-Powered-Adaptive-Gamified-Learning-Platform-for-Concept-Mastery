@@ -49,7 +49,7 @@ class TeacherAIAgent:
         }}"""
         
         response = self.client.chat.completions.create(
-            model="gpt-4.1",
+            model="gpt-4o",
             max_tokens=1000,
             messages=[{"role": "user", "content": prompt}]
         )
@@ -124,7 +124,7 @@ class TeacherAIAgent:
         IMPORTANT: Return ONLY valid JSON, nothing else."""
         
         response = self.client.chat.completions.create(
-            model="gpt-4.1",
+            model="gpt-4o",
             max_tokens=2000,
             messages=[{"role": "user", "content": prompt}]
         )
@@ -176,8 +176,7 @@ class TeacherAIAgent:
         IMPORTANT: Return ONLY valid JSON, nothing else."""
         
         response = self.client.chat.completions.create(
-            model="gpt-4.1",
-            max_tokens=1500,
+            model="gpt-4o",
             messages=[{"role": "user", "content": prompt}]
         )
         
@@ -235,8 +234,7 @@ class TeacherAIAgent:
         IMPORTANT: Return ONLY valid JSON, nothing else."""
         
         response = self.client.chat.completions.create(
-            model="gpt-4.1",
-            max_tokens=1500,
+            model="gpt-4o",
             messages=[{"role": "user", "content": prompt}]
         )
         
