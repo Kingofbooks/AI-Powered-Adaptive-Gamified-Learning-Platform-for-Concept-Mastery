@@ -1,0 +1,326 @@
+# EduSandbox - Interactive Physics Learning Platform
+# Complete Requirements (C++ Frontend + Optional Python AI Backend)
+
+# ============================================================================
+# 1. C++ FRONTEND DEPENDENCIES (Required)
+# ============================================================================
+
+# Debian / Ubuntu
+# sudo apt-get update
+# sudo apt-get install -y build-essential pkg-config libsdl2-dev libsdl2-ttf-dev fonts-dejavu
+
+# Fedora / RHEL
+# sudo dnf install -y gcc-c++ make pkgconfig SDL2-devel SDL2_ttf-devel
+
+# macOS (Homebrew)
+# brew update
+# brew install sdl2 sdl2_ttf
+
+# Windows (vcpkg or MSYS2)
+# vcpkg install sdl2 sdl2-ttf
+# OR use MSYS2: pacman -S mingw-w64-x86_64-SDL2 mingw-w64-x86_64-SDL2_ttf
+
+# Required System Packages:
+# - build-essential / gcc-c++ (C++ compiler with C++17 support)
+# - pkg-config (for build system)
+# - libsdl2-dev (SDL2 development libraries)
+# - libsdl2-ttf-dev (SDL2 TrueType font libraries)
+# - fonts-dejavu (or any TTF font)
+
+# Optional but recommended:
+# - git (version control)
+# - gdb (debugging)
+# - valgrind (memory leak detection)
+# - libsdl2-image-dev (for PNG/JPEG support if adding custom graphics)
+
+# ============================================================================
+# 2. BUILD AND RUN (C++ Only - No AI)
+# ============================================================================
+
+# Build:
+#   make clean
+#   make
+#
+# Run:
+#   ./EduSandbox
+#
+# Controls:
+#   - Press ENTER on blank screen to start prompt input
+#   - Type what you want to learn (e.g., "gravity", "collision")
+#   - Press ENTER to generate scenario
+#   - Arrow Keys / WASD: Move character
+#   - SPACE: Jump
+#   - G: Toggle learning mode (traditional)
+#   - ESC: Return to prompt screen
+
+# ============================================================================
+# 3. PYTHON AI BACKEND DEPENDENCIES (Optional - For AI Integration)
+# ============================================================================
+
+# If you want AI-powered prompt processing, install Python backend:
+
+# --- Core Web Framework (Choose one) ---
+flask==3.0.0                    # Lightweight REST API
+flask-cors==4.0.0               # CORS support for frontend-backend
+# OR (recommended for production)
+fastapi==0.109.0                # Modern async API framework
+uvicorn[standard]==0.27.0       # ASGI server for FastAPI
+pydantic==2.5.3                 # Data validation
+
+# --- AI/LLM APIs (Choose one or both) ---
+openai==1.12.0                  # OpenAI API (GPT-4, GPT-3.5-turbo)
+anthropic==0.18.1               # Claude API (Anthropic)
+
+# --- HTTP & Async ---
+requests==2.31.0                # HTTP client
+aiohttp==3.9.1                  # Async HTTP
+
+# --- Natural Language Processing ---
+spacy==3.7.2                    # NLP library
+# python -m spacy download en_core_web_sm  # Download English model
+
+# --- Data Processing ---
+numpy==1.26.3                   # Numerical computing
+pandas==2.2.0                   # Data manipulation (optional)
+
+# --- Physics (Python Side - Optional) ---
+pymunk==6.6.0                   # 2D physics engine (for validating scenarios)
+
+# --- Environment & Config ---
+python-dotenv==1.0.1            # Load .env files
+pyyaml==6.0.1                   # YAML configs
+python-multipart==0.0.7         # File upload support (FastAPI)
+
+# --- Database (Optional - For storing user progress) ---
+sqlalchemy==2.0.25              # ORM
+# sqlite3 (built-in)             # SQLite database
+# OR
+# pymongo==4.6.1                 # MongoDB
+
+# --- Caching (Optional - Speed up AI responses) ---
+# redis==5.0.1                   # Redis client
+
+# --- Testing ---
+pytest==8.0.0                   # Testing framework
+pytest-asyncio==0.23.4          # Async tests
+
+# --- Development ---
+black==24.1.1                   # Code formatter
+pylint==3.0.3                   # Linter
+mypy==1.8.0                     # Type checking
+
+# ============================================================================
+# 4. PYTHON BACKEND SETUP (If Using AI)
+# ============================================================================
+
+# Step 1: Create virtual environment
+#   python3 -m venv venv
+#   source venv/bin/activate          # Linux/macOS
+#   # OR
+#   venv\Scripts\activate             # Windows
+
+# Step 2: Install Python dependencies
+#   pip install --upgrade pip
+#   pip install flask flask-cors openai python-dotenv
+#   # OR for FastAPI:
+#   pip install fastapi uvicorn anthropic python-dotenv
+
+# Step 3: Create .env file
+#   Create a file named ".env" in backend/ directory with:
+#   OPENAI_API_KEY=your_openai_api_key_here
+#   # OR
+#   ANTHROPIC_API_KEY=your_claude_api_key_here
+
+# Step 4: Create backend API (example structure)
+#   backend/
+#   ├── app.py                 # Flask app
+#   ├── .env                   # API keys
+#   └── routes/
+#       └── generate.py        # Prompt processing endpoint
+
+# Step 5: Run backend
+#   python backend/app.py      # Flask
+#   # OR
+#   uvicorn backend.main:app --reload  # FastAPI
+
+# Step 6: Backend will run on http://localhost:5000 or :8000
+#   Frontend GameEngine is already configured to connect (processWithAI method)
+
+# ============================================================================
+# 5. EXAMPLE FLASK BACKEND (Minimal Setup)
+# ============================================================================
+
+# Create backend/app.py:
+# ```python
+# from flask import Flask, request, jsonify
+# from flask_cors import CORS
+# import openai
+# import os
+# from dotenv import load_dotenv
+#
+# load_dotenv()
+# openai.api_key = os.getenv("OPENAI_API_KEY")
+#
+# app = Flask(__name__)
+# CORS(app)
+#
+# @app.route('/api/generate', methods=['POST'])
+# def generate_scenario():
+#     data = request.json
+#     prompt = data.get('prompt', '')
+#     concept = data.get('concept', '')
+#
+#     # Call OpenAI
+#     response = openai.ChatCompletion.create(
+#         model="gpt-4",
+#         messages=[{
+#             "role": "system",
+#             "content": "You are a physics education assistant. Generate physics scenarios for learning."
+#         }, {
+#             "role": "user",
+#             "content": f"Create a physics scenario for: {prompt}. Focus on {concept}."
+#         }]
+#     )
+#
+#     scenario = response.choices[0].message.content
+#
+#     return jsonify({
+#         "instruction": scenario,
+#         "entities": [
+#             {"type": "ball", "x": 300, "y": 100, "color": "red"},
+#             {"type": "ground", "x": 600, "y": 500, "color": "brown"}
+#         ]
+#     })
+#
+# if __name__ == '__main__':
+#     app.run(port=5000, debug=True)
+# ```
+
+# ============================================================================
+# 6. SYSTEM REQUIREMENTS
+# ============================================================================
+
+# Minimum:
+# - OS: Linux (Ubuntu 20.04+), macOS 10.15+, Windows 10+
+# - RAM: 2GB
+# - CPU: Dual-core 2.0GHz
+# - Disk: 500MB free
+
+# Recommended (with AI):
+# - RAM: 8GB
+# - CPU: Quad-core 2.5GHz+
+# - Disk: 2GB free
+# - Internet: Required for AI API calls
+
+# ============================================================================
+# 7. ARCHITECTURE
+# ============================================================================
+
+# [Frontend: C++/SDL2]
+#  - Blank screen with prompt input
+#  - Character control (arrow keys, WASD, space)
+#  - Physics rendering
+#  - Particle effects
+#  |
+#  | HTTP POST /api/generate
+#  v
+# [Backend: Python/Flask/FastAPI]
+#  - Parse user prompt
+#  - Call AI API (OpenAI/Claude)
+#  - Generate scenario JSON
+#  |
+#  | API Call
+#  v
+# [AI Service: OpenAI/Claude]
+#  - Process educational prompt
+#  - Generate physics scenario
+#  - Return structured response
+
+# ============================================================================
+# 8. QUICK START GUIDE
+# ============================================================================
+
+# WITHOUT AI (Standalone):
+#   1. Install C++ dependencies (see section 1)
+#   2. make clean && make
+#   3. ./EduSandbox
+#   4. Works with rule-based prompt parsing
+
+# WITH AI (Full Features):
+#   1. Install C++ dependencies
+#   2. Install Python: pip install flask openai python-dotenv
+#   3. Create backend/app.py (see example above)
+#   4. Add API key to backend/.env
+#   5. Terminal 1: python backend/app.py
+#   6. Terminal 2: ./EduSandbox
+#   7. Type prompts like "show me gravity" and AI generates scenarios!
+
+# ============================================================================
+# 9. API ENDPOINTS (Backend)
+# ============================================================================
+
+# POST /api/generate
+# Request:
+#   {
+#     "prompt": "ball rolling down ramp",
+#     "concept": "gravity",
+#     "difficulty": "beginner"
+#   }
+# Response:
+#   {
+#     "instruction": "Watch as gravity pulls the ball...",
+#     "entities": [
+#       {"type": "ball", "x": 200, "y": 100, "color": "red", "mass": 1.0},
+#       {"type": "ramp", "x": 400, "y": 300, "color": "gray"},
+#       {"type": "ground", "x": 600, "y": 500, "color": "brown"}
+#     ],
+#     "explanation": "This demonstrates gravitational acceleration..."
+#   }
+
+# ============================================================================
+# 10. TROUBLESHOOTING
+# ============================================================================
+
+# C++ Build Errors:
+#   - "SDL.h not found": Install libsdl2-dev
+#   - "TTF_OpenFont failed": Install fonts-dejavu
+#   - Linker errors: Ensure pkg-config is installed
+
+# Python Backend Errors:
+#   - "Module not found": pip install <module>
+#   - "API key not found": Check .env file exists
+#   - CORS errors: Install flask-cors
+
+# Connection Errors:
+#   - Frontend can't reach backend: Ensure backend is running on port 5000/8000
+#   - Check firewall settings
+#   - Verify URL in GameEngine::processWithAI() method
+
+# ============================================================================
+# 11. FEATURES IMPLEMENTED
+# ============================================================================
+
+# ✅ Blank screen on startup (no auto-generation)
+# ✅ Prompt input system (press ENTER to activate)
+# ✅ Character control (arrow keys, WASD, SPACE)
+# ✅ Rule-based prompt parsing (works without AI)
+# ✅ Particle effects and animations
+# ✅ AI integration architecture (ready to connect)
+# ✅ Physics scenario generation
+# ✅ 5 stunning background themes
+# ✅ Progress tracking and achievements
+
+# ============================================================================
+# 12. FUTURE ENHANCEMENTS (Optional)
+# ============================================================================
+
+# - Vector database for semantic search (chromadb, pinecone)
+# - Local LLM support (llama.cpp, ollama)
+# - Advanced NLP (transformers, sentence-transformers)
+# - Real-time collaboration (WebSockets)
+# - Persistent cloud storage (AWS S3, Firebase)
+# - Analytics and metrics (prometheus, grafana)
+
+# ============================================================================
+# END OF REQUIREMENTS
+# ============================================================================
