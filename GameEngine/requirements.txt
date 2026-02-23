@@ -1,0 +1,33 @@
+# =============================================================================
+# EduEngine — System Requirements
+# =============================================================================
+# This is a C++ / SDL2 project. The dependencies below are Linux system
+# packages (Ubuntu / Debian). Run setup.sh to install them automatically.
+# =============================================================================
+
+# --- Compiler & Build Tools --------------------------------------------------
+build-essential          # g++ (C++17), make, ar
+pkg-config               # finds SDL2 flags/libs for the build command
+
+# --- SDL2 Libraries ----------------------------------------------------------
+libsdl2-dev              # SDL2 window, renderer, input, events
+libsdl2-ttf-dev          # SDL_ttf — TrueType font rendering (HUD text)
+libsdl2-image-dev        # SDL_image — loads PNG, JPG, BMP sprites
+libsdl2-mixer-dev        # SDL_mixer — plays WAV sound effects and music
+
+# --- Python (asset + audio generation) --------------------------------------
+python3                  # generate_assets.py (sprites) + generate_audio.py (WAV)
+python3-pip              # optional — for installing Pillow if not via apt
+python3-pil              # Pillow — sprite generation (optional; shapes used if absent)
+# Note: generate_audio.py uses only built-in Python (wave/struct/math) — no pip needed
+
+# --- Already bundled in vendor/ (no install needed) --------------------------
+# vendor/imgui/           Dear ImGui  — immediate-mode GUI overlay
+# vendor/nlohmann/        nlohmann/json — JSON scene file parsing
+
+# --- Runtime font (optional) -------------------------------------------------
+# The engine looks for:  assets/fonts/OpenSans-Regular.ttf
+# If missing it falls back to no HUD text (non-fatal).
+# Any TTF works — copy one from your system:
+#   cp /usr/share/fonts/truetype/ibm-plex/IBMPlexSans-Regular.ttf \
+#      assets/fonts/OpenSans-Regular.ttf

@@ -1,0 +1,1270 @@
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EduEngine — Complete Scene JSON Specification
+For AI Model Training & Manual Scene Authoring
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+This document is the single source of truth for the EduEngine scene JSON
+format. Use it to:
+  • Write scene files by hand
+  • Train or fine-tune an AI model to generate scenes
+  • Understand what every field does and why it exists
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 1 — WORLD & COORDINATE SYSTEM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Screen size:   1280 x 720 pixels
+
+Coordinate system:
+  • X = 0 is the LEFT edge,  X = 1280 is the RIGHT edge
+  • Y = 0 is the TOP edge,   Y = 720 is the BOTTOM edge
+  • Y increases DOWNWARD  (this is standard for 2D games)
+
+  (0,0) ──────────────────────► X (1280)
+    │
+    │
+    │
+    ▼
+   Y (720)
+
+Important Y positions:
+  Ground surface  : y = 620   (player stands on this)
+  Ground entity   : y = 620   (transform.y for the ground platform)
+  Player start    : y = 520   (player spawns above the ground)
+  Goal flag       : y = 558   (near right edge, on/near ground)
+  Platform range  : y = 280 to y = 580  (safe zone for floating platforms)
+  Info sign base  : y = 590   (sitting on the ground)
+
+Physics:
+  gravity = 980.0  (pixels per second squared, pulls entities downward)
+  A jump_force of -580 gives a nice arc; negative because up = negative Y
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 2 — TOP-LEVEL JSON STRUCTURE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Every scene file must have exactly these three top-level keys:
+
+{
+  "scene_meta":     { ... },    // metadata about the scene
+  "world_settings": { ... },    // physics and background colour
+  "entities":       [ ... ]     // list of all game objects
+}
+
+──────────────────────────────────────────────────────────────────────────
+2a. scene_meta
+──────────────────────────────────────────────────────────────────────────
+
+{
+  "id":        "photosynthesis_grade5",
+  "title":     "Photosynthesis — Grade 5",
+  "subject":   "photosynthesis",
+  "grade":     "5",
+  "ai_prompt": "teach about photosynthesis for grade 5"
+}
+
+  id        String. Unique identifier. Use snake_case. Must be filename-safe.
+            Example: "water_cycle_grade3", "space_grade7"
+            Rule: only a-z, 0-9, underscores. No spaces or special chars.
+
+  title     String. Human-readable display name shown in the engine UI.
+            Format: "<Subject> — Grade <N>"
+
+  subject   String. The theme slug (see Section 6 for all slugs).
+
+  grade     String (not integer). Grade level "1" through "12".
+            Note: stored as string even though it is a number.
+
+  ai_prompt String. The original text prompt that created this scene.
+            Used for debugging and regeneration.
+
+──────────────────────────────────────────────────────────────────────────
+2b. world_settings
+──────────────────────────────────────────────────────────────────────────
+
+{
+  "gravity":          980.0,
+  "background_color": [12, 28, 12, 255]
+}
+
+  gravity           Float. Default 980.0. Do not change unless intentional.
+                    Higher = faster falling. Lower = floatier feel.
+
+  background_color  Array [R, G, B, A]. The solid colour behind all sprites.
+                    Used as fallback if background.png fails to load.
+                    A is always 255 (fully opaque).
+                    Each value is 0-255.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 3 — ENTITY FORMAT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Each item in the "entities" array is an entity object:
+
+{
+  "name":       "Player",
+  "tags":       ["player"],
+  "components": {
+    "transform":  { ... },
+    "sprite":     { ... },
+    "rigid_body": { ... },
+    "collider":   { ... },
+    "player_tag": { ... }
+  }
+}
+
+  name        String. Must be unique within a scene. Used for debugging.
+
+  tags        Array of strings. Tells the engine what type this entity is.
+              Each entity has ONE primary tag. Possible values:
+                "player"      — the controllable character
+                "platform"    — a surface the player can stand on
+                "collectible" — an item the player picks up
+                "enemy"       — a patrolling obstacle
+                "goal"        — the level exit / finish trigger
+                "info"        — an information sign the player touches
+                "background"  — the full-screen backdrop image
+
+  components  Object. A set of component objects. Only include components
+              the entity actually needs — missing components are ignored.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 4 — COMPONENT REFERENCE  (every field explained)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+──────────────────────────────────────────────────────────────────────────
+4.1  transform  (required on EVERY entity)
+──────────────────────────────────────────────────────────────────────────
+
+{
+  "x":       200.0,
+  "y":       400.0,
+  "scale_x": 1.0,
+  "scale_y": 1.0
+}
+
+  x, y      Float. Position of the entity's top-left corner in pixels.
+             Must be within 0-1280 (x) and 0-720 (y).
+
+  scale_x   Float. Horizontal scale multiplier. Default 1.0.
+             scale_x = 2.0 makes the sprite twice as wide.
+             For platforms: scale_x = platform_width / 32.0
+             For ground:    scale_x = 40.0  (fills full 1280px width)
+
+  scale_y   Float. Vertical scale multiplier. Default 1.0.
+             For ground: scale_y = 5.0  (makes the ground 100px tall)
+             For player: scale_y = 1.5  (makes sprite 48px tall)
+
+──────────────────────────────────────────────────────────────────────────
+4.2  sprite  (add to every visible entity)
+──────────────────────────────────────────────────────────────────────────
+
+{
+  "texture": "assets/images/photosynthesis/player.png",
+  "color":   [255, 255, 255, 255],
+  "layer":   5
+}
+
+  texture   String. Path to the PNG file relative to the engine root.
+            Format: "assets/images/<theme_slug>/<filename>.png"
+            If the file doesn't exist the engine draws a coloured rectangle.
+            Leave out the texture key entirely for info signs (no image).
+
+  color     Array [R, G, B, A]. Colour tint multiplied onto the texture.
+            [255,255,255,255] = no tint (original colours).
+            Use theme colours here to tint platform.png without extra art.
+            A = 255 fully opaque, A = 220 slightly transparent, etc.
+
+  layer     Integer 0-10. Controls draw order. Higher = drawn on top.
+            Standard layers:
+              0  = background image
+              2  = platforms and ground
+              3  = info sign bases
+              4  = collectibles, enemies, goal flag
+              5  = player character, info sign text "?"
+              6  = text labels floating above items
+
+──────────────────────────────────────────────────────────────────────────
+4.3  rigid_body  (add to player and enemies only)
+──────────────────────────────────────────────────────────────────────────
+
+{
+  "mass":          1.0,
+  "gravity_scale": 1.0
+}
+
+  mass          Float. Physics mass. Default 1.0. Do not change.
+
+  gravity_scale Float. How strongly gravity affects this entity.
+                1.0 = normal gravity.
+                0.0 = floats (used for flying enemies if needed).
+                2.0 = falls faster (heavier feel).
+
+  Do NOT add rigid_body to platforms, collectibles, or background.
+  Those entities are static — they never move due to physics.
+
+──────────────────────────────────────────────────────────────────────────
+4.4  collider  (add to any entity that needs collision or trigger detection)
+──────────────────────────────────────────────────────────────────────────
+
+{
+  "width":    24,
+  "height":   32,
+  "offset_x": 4,
+  "offset_y": 0,
+  "is_trigger": false
+}
+
+  width, height  Integer. Size of the collision box in pixels.
+                 This is the hitbox, not the sprite size.
+                 Player sprite is 36x48 (24x32 * 1.5 scale), hitbox is 24x32.
+
+  offset_x      Integer. Horizontal offset from transform.x. Default 0.
+                Player uses offset_x=4 to centre the hitbox on the sprite.
+
+  offset_y      Integer. Vertical offset from transform.y. Default 0.
+                Usually 0.
+
+  is_trigger    Boolean. Default false.
+                false = solid collision (player cannot pass through)
+                true  = overlap detection only (no physical blocking)
+                Use true for: collectibles, info signs, goal flag.
+                Use false for: player, platforms, ground, enemies.
+
+──────────────────────────────────────────────────────────────────────────
+4.5  player_tag  (add to player entity only)
+──────────────────────────────────────────────────────────────────────────
+
+{
+  "move_speed": 220,
+  "jump_force": -580,
+  "max_jumps":  2
+}
+
+  move_speed  Float. Horizontal pixels per second when walking. Default 220.
+              Range: 150 (slow) to 350 (fast).
+
+  jump_force  Float. Vertical velocity applied on jump. Must be NEGATIVE
+              (up = negative Y). Default -580.
+              Range: -400 (low jump) to -700 (high jump).
+
+  max_jumps   Integer. How many times the player can jump before landing.
+              1 = single jump only.
+              2 = double jump (default — player can jump again in mid-air).
+
+──────────────────────────────────────────────────────────────────────────
+4.6  platform  (add to platforms and ground)
+──────────────────────────────────────────────────────────────────────────
+
+{
+  "is_one_way": true
+}
+
+  is_one_way  Boolean.
+              false = solid from all sides (ground should use false).
+              true  = player can jump up through it from below, but
+                      lands on it when falling from above (floating platforms).
+
+──────────────────────────────────────────────────────────────────────────
+4.7  collectible  (add to collectible entities)
+──────────────────────────────────────────────────────────────────────────
+
+{
+  "point_value": 15,
+  "label":       "CO₂"
+}
+
+  point_value  Integer. Points awarded when collected. Range: 10-25.
+               Use 10 for common items, 25 for rare/hard-to-reach items.
+
+  label        String. Short educational term shown in the HUD when
+               collected. Should be a vocabulary word from the topic.
+               Examples: "CO₂", "Chlorophyll", "Pythagorean", "Mitosis"
+               Keep under 15 characters.
+
+──────────────────────────────────────────────────────────────────────────
+4.8  text_label  (floating text above an entity)
+──────────────────────────────────────────────────────────────────────────
+
+{
+  "text":      "CO₂",
+  "color":     [255, 255, 200, 255],
+  "font_size": 13,
+  "layer":     6
+}
+
+  text       String. The text to display. Supports UTF-8 (Unicode chars OK).
+
+  color      Array [R,G,B,A]. Text colour.
+             Common choices:
+               [255, 255, 200, 255]  = warm white (for collectible labels)
+               [30,  20,  5,   255]  = dark brown (for info sign "?")
+               [255, 255, 255, 255]  = pure white (for goal "GOAL" text)
+
+  font_size  Integer. Size in points. Range: 12-22.
+             Collectible labels: 13
+             Info sign "?":     20
+             Goal text "GOAL":  16
+
+  layer      Integer. Same layer system as sprite. Usually 6 (above sprites).
+
+──────────────────────────────────────────────────────────────────────────
+4.9  info_zone  (educational fact popup when player touches the sign)
+──────────────────────────────────────────────────────────────────────────
+
+{
+  "text":   "Photosynthesis converts light energy into glucose.",
+  "repeat": false
+}
+
+  text    String. The educational fact shown as a popup overlay.
+          Should be a single clear sentence. Max ~120 characters.
+          Use age-appropriate language for the target grade.
+
+  repeat  Boolean. Default false.
+          false = show only once per session (prevents annoyance).
+          true  = show every time the player walks into the zone.
+
+──────────────────────────────────────────────────────────────────────────
+4.10  enemy  (patrolling obstacle)
+──────────────────────────────────────────────────────────────────────────
+
+{
+  "patrol_min_x": 380.0,
+  "patrol_max_x": 580.0,
+  "speed":        80.0
+}
+
+  patrol_min_x  Float. Left boundary of the patrol path (pixels).
+  patrol_max_x  Float. Right boundary. Enemy bounces between these.
+  speed         Float. Movement speed in pixels per second. Range: 60-150.
+                Easy (grade 5): 70.   Hard (grade 12): 130+.
+
+  The enemy automatically reverses direction at the boundaries.
+  Keep patrol range within 100-1200 to avoid going off-screen.
+
+──────────────────────────────────────────────────────────────────────────
+4.11  goal  (level exit — empty object)
+──────────────────────────────────────────────────────────────────────────
+
+{
+  "goal": {}
+}
+
+  No fields. The presence of this component marks the entity as the
+  level exit. When the player's collider overlaps the goal collider,
+  "Level Complete!" appears and the game ends.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 5 — ENTITY BLUEPRINTS  (copy-paste templates)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Replace <SLUG> with the theme slug (e.g. photosynthesis, space, default).
+
+──────────────────────────────────────────────────────────────────────────
+BACKGROUND  (exactly one per scene, always first in entities array)
+──────────────────────────────────────────────────────────────────────────
+{
+  "name": "Background",
+  "tags": ["background"],
+  "components": {
+    "transform": { "x": 0, "y": 0, "scale_x": 1.0, "scale_y": 1.0 },
+    "sprite":    { "texture": "assets/images/<SLUG>/background.png",
+                   "color": [255,255,255,255], "layer": 0 }
+  }
+}
+
+  Notes:
+  - x=0, y=0, scale_x=1.0, scale_y=1.0 ALWAYS — fills the screen exactly
+  - No collider (background has no physics)
+  - Layer 0 — always behind everything
+
+──────────────────────────────────────────────────────────────────────────
+PLAYER  (exactly one per scene)
+──────────────────────────────────────────────────────────────────────────
+{
+  "name": "Player",
+  "tags": ["player"],
+  "components": {
+    "transform":  { "x": 80, "y": 520, "scale_x": 1.5, "scale_y": 1.5 },
+    "sprite":     { "texture": "assets/images/<SLUG>/player.png",
+                    "color": [255,255,255,255], "layer": 5 },
+    "rigid_body": { "mass": 1.0, "gravity_scale": 1.0 },
+    "collider":   { "offset_x": 4, "width": 24, "height": 32 },
+    "player_tag": { "move_speed": 220, "jump_force": -580, "max_jumps": 2 }
+  }
+}
+
+  Notes:
+  - x=80, y=520 ALWAYS (spawn point left side, above ground)
+  - scale 1.5 → sprite renders at 36x48 pixels, hitbox is 24x32
+  - offset_x=4 centres the hitbox under the sprite
+  - is_trigger NOT set (defaults to false = solid collision)
+
+──────────────────────────────────────────────────────────────────────────
+GROUND  (exactly one per scene — the floor)
+──────────────────────────────────────────────────────────────────────────
+{
+  "name": "Ground",
+  "tags": ["platform"],
+  "components": {
+    "transform": { "x": 0, "y": 620, "scale_x": 40.0, "scale_y": 5.0 },
+    "sprite":    { "texture": "assets/images/<SLUG>/platform.png",
+                   "color": [R,G,B,255], "layer": 2 },
+    "collider":  { "width": 1280, "height": 100 },
+    "platform":  { "is_one_way": false }
+  }
+}
+
+  Notes:
+  - x=0, y=620 ALWAYS
+  - scale_x=40 → platform.png (32px wide) × 40 = 1280px (full width)
+  - scale_y=5  → platform.png (20px tall) × 5  = 100px (ground thickness)
+  - collider width=1280, height=100 matches the visual size
+  - is_one_way=false → player CANNOT fall through the ground
+  - Use the theme's platform colour for the color field
+
+──────────────────────────────────────────────────────────────────────────
+FLOATING PLATFORM
+──────────────────────────────────────────────────────────────────────────
+{
+  "name": "Platform_1",
+  "tags": ["platform"],
+  "components": {
+    "transform": { "x": 200, "y": 480, "scale_x": 5.0, "scale_y": 1.0 },
+    "sprite":    { "texture": "assets/images/<SLUG>/platform.png",
+                   "color": [R,G,B,255], "layer": 2 },
+    "collider":  { "width": 160, "height": 20 },
+    "platform":  { "is_one_way": true }
+  }
+}
+
+  Notes:
+  - scale_x = collider_width / 32.0   (platform.png is 32px wide)
+    Example: width=160 → scale_x = 160/32 = 5.0
+  - scale_y = 1.0 ALWAYS for floating platforms
+  - is_one_way=true → player can jump up through, land on top
+  - y range: 280 to 580 (safe platform heights)
+  - x range: 50 to 1100 (keep on screen)
+  - Common widths: 130, 140, 150, 160, 170, 180, 190
+
+──────────────────────────────────────────────────────────────────────────
+COLLECTIBLE
+──────────────────────────────────────────────────────────────────────────
+{
+  "name": "Collect_CO2",
+  "tags": ["collectible"],
+  "components": {
+    "transform":   { "x": 220, "y": 430 },
+    "sprite":      { "texture": "assets/images/<SLUG>/collectible_0.png",
+                     "color": [R,G,B,220], "layer": 4 },
+    "collider":    { "width": 28, "height": 28, "is_trigger": true },
+    "collectible": { "point_value": 15, "label": "CO₂" },
+    "text_label":  { "text": "CO₂", "color": [255,255,200,255],
+                     "font_size": 13, "layer": 6 }
+  }
+}
+
+  Notes:
+  - name should be "Collect_<label>" with label matching collectible.label
+  - texture index: collectible_0.png, collectible_1.png ... collectible_5.png
+    Use a different index for each collectible in the scene
+  - color alpha=220 gives a slight transparency for aesthetic effect
+  - is_trigger=true → no physical collision, just overlap detection
+  - Both collectible.label AND text_label.text should match
+  - Place above platforms (y = platform.y - 50 to 100)
+
+──────────────────────────────────────────────────────────────────────────
+INFO SIGN  (educational fact trigger)
+──────────────────────────────────────────────────────────────────────────
+{
+  "name": "InfoSign_1",
+  "tags": ["info"],
+  "components": {
+    "transform":  { "x": 400, "y": 590 },
+    "sprite":     { "color": [220,180,60,220], "layer": 3 },
+    "collider":   { "width": 36, "height": 36, "is_trigger": true },
+    "text_label": { "text": "?", "color": [30,20,5,255],
+                    "font_size": 20, "layer": 5 },
+    "info_zone":  { "text": "Photosynthesis converts light into glucose.",
+                    "repeat": false }
+  }
+}
+
+  Notes:
+  - No texture in sprite — the engine draws a coloured square
+  - Gold colour [220,180,60,220] is standard for info signs
+  - y=590 ALWAYS (sits on the ground)
+  - x range: 200 to 1000 (spread them out)
+  - The "?" text_label is what the player sees before touching it
+  - info_zone.text is what pops up when touched (the actual fact)
+  - Keep info_zone.text factual, educational, and grade-appropriate
+
+──────────────────────────────────────────────────────────────────────────
+ENEMY
+──────────────────────────────────────────────────────────────────────────
+{
+  "name": "Enemy_1",
+  "tags": ["enemy"],
+  "components": {
+    "transform":  { "x": 400, "y": 588 },
+    "sprite":     { "texture": "assets/images/<SLUG>/enemy.png",
+                    "color": [255,255,255,230], "layer": 4 },
+    "collider":   { "width": 30, "height": 32 },
+    "rigid_body": { "mass": 1.0, "gravity_scale": 1.0 },
+    "enemy":      { "patrol_min_x": 380.0,
+                    "patrol_max_x": 580.0,
+                    "speed": 80.0 }
+  }
+}
+
+  Notes:
+  - y=588 places enemy feet on the ground (ground is at y=620, enemy is 32px tall)
+  - patrol_min_x = transform.x - 20  (a little to the left of spawn)
+  - patrol_max_x = transform.x + patrol_width  (patrol range)
+  - color alpha=230 makes enemy slightly transparent
+  - DO NOT add is_trigger to enemy collider — enemies are solid obstacles
+  - ONLY include enemies for grade >= 5
+
+──────────────────────────────────────────────────────────────────────────
+GOAL FLAG  (exactly one per scene, always near the right edge)
+──────────────────────────────────────────────────────────────────────────
+{
+  "name": "Goal_Flag",
+  "tags": ["goal"],
+  "components": {
+    "transform":  { "x": 1160, "y": 558 },
+    "sprite":     { "texture": "assets/images/<SLUG>/goal.png",
+                    "color": [R,G,B,255], "layer": 4 },
+    "collider":   { "width": 40, "height": 60, "is_trigger": true },
+    "goal":       {},
+    "text_label": { "text": "GOAL", "color": [255,255,255,255], "layer": 6 }
+  }
+}
+
+  Notes:
+  - x=1160, y=558 ALMOST ALWAYS (near the right edge)
+  - goal.png is 40x60 pixels — a flag on a pole
+  - Use the theme's collectible colour to tint the flag
+  - is_trigger=true → touching = level complete
+  - "GOAL" text_label is always white
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 6 — THE 10 SUBJECTS  (complete data for every theme)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+For each subject you'll find:
+  slug              — the string used in texture paths and theme detection
+  background_color  — world_settings.background_color [R,G,B,255]
+  platform_color    — sprite.color for ground and all platforms
+  collectible_color — sprite.color for collectibles (alpha 220)
+  collectibles      — educational vocabulary items to pick up
+  facts             — facts shown in info_zone popups
+  keywords          — words in the prompt that trigger this theme
+
+──────────────────────────────────────────────────────────────────────────
+THEME 1: photosynthesis
+──────────────────────────────────────────────────────────────────────────
+  slug:              "photosynthesis"
+  background_color:  [12, 28, 12, 255]       dark forest green
+  platform_color:    [30, 90, 30, 255]       medium green
+  collectible_color: [80, 220, 80, 220]      bright green
+
+  collectibles (labels):
+    "CO₂"         — carbon dioxide the plant absorbs
+    "H₂O"         — water absorbed through roots
+    "Sunlight"     — light energy from the sun
+    "Glucose"      — sugar produced by photosynthesis
+    "O₂"          — oxygen released as a byproduct
+    "Chlorophyll"  — the green pigment that captures light
+
+  info_zone facts:
+    "Photosynthesis converts light energy into chemical energy stored as glucose."
+    "CO₂ enters leaves through tiny pores called stomata."
+    "Chlorophyll is the green pigment in leaves that captures sunlight."
+    "Oxygen (O₂) is released as a byproduct of photosynthesis."
+
+  keywords: photosyn, chloro, plant, leaf, glucose, chlorophyll
+
+──────────────────────────────────────────────────────────────────────────
+THEME 2: space
+──────────────────────────────────────────────────────────────────────────
+  slug:              "space"
+  background_color:  [5, 5, 25, 255]         deep space black-blue
+  platform_color:    [40, 40, 100, 255]      dark blue (asteroids/rocks)
+  collectible_color: [220, 180, 60, 220]     golden (stars)
+
+  collectibles (labels):
+    "Mercury"  — smallest planet, closest to sun
+    "Venus"    — hottest planet, second from sun
+    "Earth"    — our home planet
+    "Mars"     — the red planet
+    "Jupiter"  — largest planet
+    "Saturn"   — planet with rings
+    "Star"     — a ball of hot gas producing light
+
+  info_zone facts:
+    "The Sun is a medium-sized star at the centre of our solar system."
+    "Mars has the largest volcano: Olympus Mons at 22 km high."
+    "Jupiter is so large that all other planets could fit inside it."
+    "Light from the Sun takes 8 minutes to reach Earth."
+
+  keywords: solar, planet, space, astro, star, galaxy, orbit, moon, nasa
+
+──────────────────────────────────────────────────────────────────────────
+THEME 3: water_cycle
+──────────────────────────────────────────────────────────────────────────
+  slug:              "water_cycle"
+  background_color:  [10, 20, 50, 255]       deep ocean blue
+  platform_color:    [30, 60, 120, 255]      medium blue (clouds/water)
+  collectible_color: [100, 180, 255, 220]    light blue (water droplets)
+
+  collectibles (labels):
+    "Evaporation"    — water turning to vapour from heat
+    "Condensation"   — vapour cooling into water droplets
+    "Precipitation"  — rain, snow, or hail falling
+    "Runoff"         — water flowing over land to rivers
+    "Transpiration"  — plants releasing water vapour
+
+  info_zone facts:
+    "Water evaporates from oceans when heated by the Sun."
+    "Water vapour condenses into clouds as it rises and cools."
+    "Precipitation returns water to Earth as rain, snow, or hail."
+    "Plants release water vapour through transpiration."
+
+  keywords: water cycle, evapor, precipit, condensat, rain, cloud, river
+
+──────────────────────────────────────────────────────────────────────────
+THEME 4: mathematics
+──────────────────────────────────────────────────────────────────────────
+  slug:              "mathematics"
+  background_color:  [20, 15, 30, 255]       dark purple
+  platform_color:    [60, 40, 100, 255]      purple (abstract)
+  collectible_color: [255, 200, 50, 220]     gold (achievement)
+
+  collectibles (labels):
+    "π"    — pi, ratio of circumference to diameter
+    "∑"    — sigma, summation
+    "∫"    — integral
+    "√"    — square root
+    "2²"   — power/exponent
+    "x²"   — variable squared
+    "Δ"    — delta, change
+
+  info_zone facts:
+    "Pi (π) ≈ 3.14159 is the ratio of a circle's circumference to diameter."
+    "The Pythagorean theorem: a² + b² = c²."
+    "A prime number has only two factors: 1 and itself."
+    "Zero was invented in ancient India around 500 CE."
+
+  keywords: math, algebra, geometr, fraction, calculus, equation, number, pi
+
+──────────────────────────────────────────────────────────────────────────
+THEME 5: history
+──────────────────────────────────────────────────────────────────────────
+  slug:              "history"
+  background_color:  [30, 20, 10, 255]       dark sepia/brown
+  platform_color:    [80, 55, 25, 255]       earthy brown
+  collectible_color: [200, 160, 60, 220]     bronze/gold (artefacts)
+
+  collectibles (labels):
+    "Scroll"  — ancient manuscript
+    "Crown"   — symbol of monarchy
+    "Shield"  — defensive armour
+    "Sword"   — weapon of knights
+    "Map"     — navigation tool
+    "Coin"    — ancient currency
+
+  info_zone facts:
+    "Ancient Egypt built the Great Pyramid around 2560 BCE."
+    "The Roman Empire lasted from 27 BCE to 476 CE."
+    "The Renaissance was a cultural rebirth from the 14th to 17th century."
+    "The Industrial Revolution began in Britain around 1760 CE."
+
+  keywords: history, ancient, civil, war, empire, roman, egypt, medieval
+
+──────────────────────────────────────────────────────────────────────────
+THEME 6: chemistry
+──────────────────────────────────────────────────────────────────────────
+  slug:              "chemistry"
+  background_color:  [10, 5, 25, 255]        dark indigo
+  platform_color:    [60, 20, 80, 255]       deep purple (lab)
+  collectible_color: [120, 220, 180, 220]    teal (lab glassware)
+
+  collectibles (labels):
+    "H₂O"   — water molecule
+    "O₂"    — oxygen molecule
+    "NaCl"  — table salt
+    "CO₂"   — carbon dioxide
+    "Fe"    — iron element
+    "Au"    — gold element
+    "Atom"  — basic unit of matter
+
+  info_zone facts:
+    "The periodic table has 118 confirmed elements."
+    "An atom consists of protons, neutrons, and electrons."
+    "Water (H₂O) is called a universal solvent."
+    "Gold (Au) is a noble metal and does not corrode."
+
+  keywords: chemistry, element, atom, molecule, periodic, reaction, compound
+
+──────────────────────────────────────────────────────────────────────────
+THEME 7: physics
+──────────────────────────────────────────────────────────────────────────
+  slug:              "physics"
+  background_color:  [5, 10, 30, 255]        deep navy
+  platform_color:    [20, 50, 120, 255]      electric blue
+  collectible_color: [60, 180, 255, 220]     bright electric blue
+
+  collectibles (labels):
+    "Force"    — push or pull on an object
+    "Energy"   — capacity to do work
+    "Mass"     — amount of matter
+    "Velocity" — speed with direction
+    "Gravity"  — attractive force between masses
+    "Wave"     — transfer of energy through a medium
+
+  info_zone facts:
+    "Newton's First Law: an object at rest stays at rest unless acted on."
+    "E = mc² relates mass and energy (Einstein, 1905)."
+    "Gravity accelerates objects at 9.8 m/s² on Earth."
+    "Sound travels at approximately 343 m/s through air."
+
+  keywords: physics, force, energy, gravity, velocity, motion, newton, wave
+
+──────────────────────────────────────────────────────────────────────────
+THEME 8: biology
+──────────────────────────────────────────────────────────────────────────
+  slug:              "biology"
+  background_color:  [10, 25, 15, 255]       dark forest green
+  platform_color:    [25, 70, 35, 255]       forest green
+  collectible_color: [100, 240, 130, 220]    bright lime green
+
+  collectibles (labels):
+    "DNA"      — deoxyribonucleic acid, genetic blueprint
+    "Cell"     — basic unit of life
+    "Protein"  — molecule built from amino acids
+    "Gene"     — section of DNA coding for a trait
+    "Enzyme"   — biological catalyst
+    "Nucleus"  — control centre of the cell
+
+  info_zone facts:
+    "The human body has approximately 37 trillion cells."
+    "DNA is a double helix made of base pairs: A-T and G-C."
+    "The cell membrane controls what enters and exits the cell."
+    "Mitosis produces two identical daughter cells from one parent cell."
+
+  keywords: biology, cell, dna, animal, plant, organ, mitosis, gene, protein
+
+──────────────────────────────────────────────────────────────────────────
+THEME 9: geography
+──────────────────────────────────────────────────────────────────────────
+  slug:              "geography"
+  background_color:  [5, 20, 40, 255]        deep ocean blue
+  platform_color:    [20, 80, 40, 255]       land green
+  collectible_color: [60, 180, 100, 220]     green (continents)
+
+  collectibles (labels):
+    "Africa"    — second largest continent
+    "Asia"      — largest continent
+    "Europe"    — third smallest continent
+    "Amazon"    — world's largest rainforest
+    "Equator"   — imaginary line at 0° latitude
+    "Mountain"  — elevated landform
+
+  info_zone facts:
+    "Earth has 7 continents and 5 major oceans."
+    "The Amazon rainforest covers over 5.5 million km²."
+    "The Sahara is the world's largest hot desert."
+    "The Mariana Trench is the deepest point on Earth at ~11 km."
+
+  keywords: geograph, continent, climate, ocean, mountain, river, country
+
+──────────────────────────────────────────────────────────────────────────
+THEME 10: default  (used when no subject is detected)
+──────────────────────────────────────────────────────────────────────────
+  slug:              "default"
+  background_color:  [18, 12, 30, 255]       dark purple
+  platform_color:    [55, 35, 90, 255]       purple
+  collectible_color: [200, 120, 255, 220]    lavender
+
+  collectibles (labels):
+    "⭐"   — star achievement
+    "💡"   — idea/lightbulb
+    "📚"   — books/knowledge
+    "🔬"   — science
+    "🏆"   — trophy
+    "🎯"   — target/goal
+
+  info_zone facts:
+    "Keep exploring and never stop asking questions!"
+    "Every expert was once a beginner."
+    "Learning is the most powerful tool you have."
+    "Curiosity is the engine of discovery."
+
+  keywords: (used when no other theme matches)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 7 — LEVEL DESIGN RULES  (difficulty scaling by grade)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Use these formulas to decide how many of each entity to include:
+
+  num_platforms    = clamp(3 + floor(grade / 3), 3, 7)
+  num_collectibles = min(number_of_theme_collectibles, num_platforms + 1)
+  num_enemies      = grade < 5 ? 0 : min(floor(grade / 3), 3)
+  num_info_signs   = min(number_of_theme_facts, 3)
+
+  Grade 1  → 3 platforms, 0 enemies,  3 info signs
+  Grade 3  → 4 platforms, 0 enemies,  3 info signs
+  Grade 5  → 4 platforms, 1 enemy,    3 info signs
+  Grade 6  → 5 platforms, 2 enemies,  3 info signs
+  Grade 9  → 6 platforms, 3 enemies,  3 info signs
+  Grade 12 → 7 platforms, 3 enemies,  3 info signs
+
+Platform placement formula (spread evenly):
+  spacing = 1100 / num_platforms
+  platform_x[i] = 120 + i * spacing
+  platform_y[i] = cycle through [480, 400, 330, 450, 370, 310, 420]
+  platform_width[i] = cycle through [160, 140, 180, 130, 170, 150, 190]
+
+Collectible placement (spread between platforms):
+  spacing = 1100 / (num_collectibles + 1)
+  collectible_x[i] = 150 + i * spacing
+  collectible_y[i] = cycle through [360, 280, 440, 310, 390]
+  Place collectibles 50-100px above the nearest platform
+
+Info sign placement (spread across the level):
+  info_x options: [380, 680, 950]
+  info_y = 590  (always on the ground)
+
+Enemy placement (grade 5+):
+  enemy_x options: [400, 700, 950]
+  enemy_y = 588  (standing on ground)
+  patrol range: [enemy_x - 20, enemy_x + 150 + (enemy_index * 30)]
+  speed: 70 + (enemy_index * 15)  → 70, 85, 100 for 3 enemies
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 8 — TEXTURE FILES REFERENCE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Every theme has these 9+ files in assets/images/<slug>/:
+
+  background.png      1280 x 720   RGB    full-screen backdrop
+  player.png            24 x  32   RGBA   the player character sprite
+  platform.png          32 x  20   RGBA   tile for platforms and ground
+  enemy.png             30 x  32   RGBA   the enemy character sprite
+  goal.png              40 x  60   RGBA   flag on a pole (level exit)
+  collectible_0.png     28 x  28   RGBA   glowing orb / item sprite
+  collectible_1.png     28 x  28   RGBA
+  collectible_2.png     28 x  28   RGBA
+  collectible_3.png     28 x  28   RGBA
+  collectible_4.png     28 x  28   RGBA
+
+How scales map to pixel sizes in game:
+  background : scale 1.0   → 1280 x 720 (fills screen)
+  player     : scale 1.5   → 36 x 48
+  ground     : scale 40×5  → 1280 x 100
+  platform   : scale w/32  → variable width × 20
+  collectible: scale 1.0   → 28 x 28
+  enemy      : scale 1.0   → 30 x 32
+  goal       : scale 1.0   → 40 x 60
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 9 — COMPLETE EXAMPLE SCENE  (biology, grade 6)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+{
+  "scene_meta": {
+    "id":        "biology_grade6",
+    "title":     "Biology — Grade 6",
+    "subject":   "biology",
+    "grade":     "6",
+    "ai_prompt": "teach about cells and DNA for grade 6"
+  },
+  "world_settings": {
+    "gravity": 980.0,
+    "background_color": [10, 25, 15, 255]
+  },
+  "entities": [
+    {
+      "name": "Background",
+      "tags": ["background"],
+      "components": {
+        "transform": { "x": 0, "y": 0, "scale_x": 1.0, "scale_y": 1.0 },
+        "sprite":    { "texture": "assets/images/biology/background.png",
+                       "color": [255,255,255,255], "layer": 0 }
+      }
+    },
+    {
+      "name": "Player",
+      "tags": ["player"],
+      "components": {
+        "transform":  { "x": 80, "y": 520, "scale_x": 1.5, "scale_y": 1.5 },
+        "sprite":     { "texture": "assets/images/biology/player.png",
+                        "color": [255,255,255,255], "layer": 5 },
+        "rigid_body": { "mass": 1.0, "gravity_scale": 1.0 },
+        "collider":   { "offset_x": 4, "width": 24, "height": 32 },
+        "player_tag": { "move_speed": 220, "jump_force": -580, "max_jumps": 2 }
+      }
+    },
+    {
+      "name": "Ground",
+      "tags": ["platform"],
+      "components": {
+        "transform": { "x": 0, "y": 620, "scale_x": 40.0, "scale_y": 5.0 },
+        "sprite":    { "texture": "assets/images/biology/platform.png",
+                       "color": [25,70,35,255], "layer": 2 },
+        "collider":  { "width": 1280, "height": 100 },
+        "platform":  { "is_one_way": false }
+      }
+    },
+    {
+      "name": "Platform_1",
+      "tags": ["platform"],
+      "components": {
+        "transform": { "x": 120, "y": 480, "scale_x": 5.0, "scale_y": 1.0 },
+        "sprite":    { "texture": "assets/images/biology/platform.png",
+                       "color": [25,70,35,255], "layer": 2 },
+        "collider":  { "width": 160, "height": 20 },
+        "platform":  { "is_one_way": true }
+      }
+    },
+    {
+      "name": "Platform_2",
+      "tags": ["platform"],
+      "components": {
+        "transform": { "x": 340, "y": 400, "scale_x": 4.375, "scale_y": 1.0 },
+        "sprite":    { "texture": "assets/images/biology/platform.png",
+                       "color": [25,70,35,255], "layer": 2 },
+        "collider":  { "width": 140, "height": 20 },
+        "platform":  { "is_one_way": true }
+      }
+    },
+    {
+      "name": "Platform_3",
+      "tags": ["platform"],
+      "components": {
+        "transform": { "x": 560, "y": 330, "scale_x": 5.625, "scale_y": 1.0 },
+        "sprite":    { "texture": "assets/images/biology/platform.png",
+                       "color": [25,70,35,255], "layer": 2 },
+        "collider":  { "width": 180, "height": 20 },
+        "platform":  { "is_one_way": true }
+      }
+    },
+    {
+      "name": "Platform_4",
+      "tags": ["platform"],
+      "components": {
+        "transform": { "x": 780, "y": 450, "scale_x": 4.0625, "scale_y": 1.0 },
+        "sprite":    { "texture": "assets/images/biology/platform.png",
+                       "color": [25,70,35,255], "layer": 2 },
+        "collider":  { "width": 130, "height": 20 },
+        "platform":  { "is_one_way": true }
+      }
+    },
+    {
+      "name": "Platform_5",
+      "tags": ["platform"],
+      "components": {
+        "transform": { "x": 1000, "y": 370, "scale_x": 5.3125, "scale_y": 1.0 },
+        "sprite":    { "texture": "assets/images/biology/platform.png",
+                       "color": [25,70,35,255], "layer": 2 },
+        "collider":  { "width": 170, "height": 20 },
+        "platform":  { "is_one_way": true }
+      }
+    },
+    {
+      "name": "Collect_DNA",
+      "tags": ["collectible"],
+      "components": {
+        "transform":   { "x": 150, "y": 360 },
+        "sprite":      { "texture": "assets/images/biology/collectible_0.png",
+                         "color": [100,240,130,220], "layer": 4 },
+        "collider":    { "width": 28, "height": 28, "is_trigger": true },
+        "collectible": { "point_value": 15, "label": "DNA" },
+        "text_label":  { "text": "DNA", "color": [255,255,200,255],
+                         "font_size": 13, "layer": 6 }
+      }
+    },
+    {
+      "name": "Collect_Cell",
+      "tags": ["collectible"],
+      "components": {
+        "transform":   { "x": 370, "y": 280 },
+        "sprite":      { "texture": "assets/images/biology/collectible_1.png",
+                         "color": [100,240,130,220], "layer": 4 },
+        "collider":    { "width": 28, "height": 28, "is_trigger": true },
+        "collectible": { "point_value": 15, "label": "Cell" },
+        "text_label":  { "text": "Cell", "color": [255,255,200,255],
+                         "font_size": 13, "layer": 6 }
+      }
+    },
+    {
+      "name": "Collect_Protein",
+      "tags": ["collectible"],
+      "components": {
+        "transform":   { "x": 590, "y": 440 },
+        "sprite":      { "texture": "assets/images/biology/collectible_2.png",
+                         "color": [100,240,130,220], "layer": 4 },
+        "collider":    { "width": 28, "height": 28, "is_trigger": true },
+        "collectible": { "point_value": 20, "label": "Protein" },
+        "text_label":  { "text": "Protein", "color": [255,255,200,255],
+                         "font_size": 13, "layer": 6 }
+      }
+    },
+    {
+      "name": "Collect_Gene",
+      "tags": ["collectible"],
+      "components": {
+        "transform":   { "x": 810, "y": 310 },
+        "sprite":      { "texture": "assets/images/biology/collectible_3.png",
+                         "color": [100,240,130,220], "layer": 4 },
+        "collider":    { "width": 28, "height": 28, "is_trigger": true },
+        "collectible": { "point_value": 20, "label": "Gene" },
+        "text_label":  { "text": "Gene", "color": [255,255,200,255],
+                         "font_size": 13, "layer": 6 }
+      }
+    },
+    {
+      "name": "Collect_Nucleus",
+      "tags": ["collectible"],
+      "components": {
+        "transform":   { "x": 1030, "y": 390 },
+        "sprite":      { "texture": "assets/images/biology/collectible_4.png",
+                         "color": [100,240,130,220], "layer": 4 },
+        "collider":    { "width": 28, "height": 28, "is_trigger": true },
+        "collectible": { "point_value": 25, "label": "Nucleus" },
+        "text_label":  { "text": "Nucleus", "color": [255,255,200,255],
+                         "font_size": 13, "layer": 6 }
+      }
+    },
+    {
+      "name": "InfoSign_1",
+      "tags": ["info"],
+      "components": {
+        "transform":  { "x": 380, "y": 590 },
+        "sprite":     { "color": [220,180,60,220], "layer": 3 },
+        "collider":   { "width": 36, "height": 36, "is_trigger": true },
+        "text_label": { "text": "?", "color": [30,20,5,255],
+                        "font_size": 20, "layer": 5 },
+        "info_zone":  { "text": "The human body has approximately 37 trillion cells.",
+                        "repeat": false }
+      }
+    },
+    {
+      "name": "InfoSign_2",
+      "tags": ["info"],
+      "components": {
+        "transform":  { "x": 680, "y": 590 },
+        "sprite":     { "color": [220,180,60,220], "layer": 3 },
+        "collider":   { "width": 36, "height": 36, "is_trigger": true },
+        "text_label": { "text": "?", "color": [30,20,5,255],
+                        "font_size": 20, "layer": 5 },
+        "info_zone":  { "text": "DNA is a double helix made of base pairs: A-T and G-C.",
+                        "repeat": false }
+      }
+    },
+    {
+      "name": "InfoSign_3",
+      "tags": ["info"],
+      "components": {
+        "transform":  { "x": 950, "y": 590 },
+        "sprite":     { "color": [220,180,60,220], "layer": 3 },
+        "collider":   { "width": 36, "height": 36, "is_trigger": true },
+        "text_label": { "text": "?", "color": [30,20,5,255],
+                        "font_size": 20, "layer": 5 },
+        "info_zone":  { "text": "Mitosis produces two identical daughter cells from one parent cell.",
+                        "repeat": false }
+      }
+    },
+    {
+      "name": "Enemy_1",
+      "tags": ["enemy"],
+      "components": {
+        "transform":  { "x": 400, "y": 588 },
+        "sprite":     { "texture": "assets/images/biology/enemy.png",
+                        "color": [255,255,255,230], "layer": 4 },
+        "collider":   { "width": 30, "height": 32 },
+        "rigid_body": { "mass": 1.0, "gravity_scale": 1.0 },
+        "enemy":      { "patrol_min_x": 380.0,
+                        "patrol_max_x": 550.0,
+                        "speed": 70.0 }
+      }
+    },
+    {
+      "name": "Enemy_2",
+      "tags": ["enemy"],
+      "components": {
+        "transform":  { "x": 700, "y": 588 },
+        "sprite":     { "texture": "assets/images/biology/enemy.png",
+                        "color": [255,255,255,230], "layer": 4 },
+        "collider":   { "width": 30, "height": 32 },
+        "rigid_body": { "mass": 1.0, "gravity_scale": 1.0 },
+        "enemy":      { "patrol_min_x": 680.0,
+                        "patrol_max_x": 880.0,
+                        "speed": 85.0 }
+      }
+    },
+    {
+      "name": "Goal_Flag",
+      "tags": ["goal"],
+      "components": {
+        "transform":  { "x": 1160, "y": 558 },
+        "sprite":     { "texture": "assets/images/biology/goal.png",
+                        "color": [100,240,130,255], "layer": 4 },
+        "collider":   { "width": 40, "height": 60, "is_trigger": true },
+        "goal":       {},
+        "text_label": { "text": "GOAL", "color": [255,255,255,255], "layer": 6 }
+      }
+    }
+  ]
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 10 — AI MODEL TRAINING GUIDE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+This section tells your friend exactly what the AI model needs to learn.
+
+──────────────────────────────────────────────────────────────────────────
+10a. What the model receives as INPUT
+──────────────────────────────────────────────────────────────────────────
+
+The model receives a natural language prompt from the user. Examples:
+  "teach photosynthesis for grade 5"
+  "a space adventure game for year 3 students"
+  "history of Rome, grade 8, with enemies"
+  "biology cells" (vague — use default values)
+  "make a fun game" (very vague — use default theme)
+
+From this, the model must extract:
+  1. Subject/theme  — map to one of the 10 slugs (see Section 6)
+  2. Grade level    — integer 1-12 (default 5 if not mentioned)
+  3. Optional hints — "with enemies", "easy", "lots of platforms", etc.
+
+──────────────────────────────────────────────────────────────────────────
+10b. What the model must OUTPUT
+──────────────────────────────────────────────────────────────────────────
+
+A single valid JSON object that:
+  1. Starts with { and ends with }
+  2. Has the three required keys: scene_meta, world_settings, entities
+  3. Contains these entities (in order):
+       a. Exactly 1 Background
+       b. Exactly 1 Player
+       c. Exactly 1 Ground
+       d. 3-7 Platforms (based on grade formula)
+       e. 3-6 Collectibles (based on grade and theme)
+       f. 1-3 Info signs
+       g. 0-3 Enemies (only grade 5+)
+       h. Exactly 1 Goal Flag
+  4. Uses the correct theme colours (see Section 6)
+  5. Uses correct texture paths (assets/images/<slug>/...)
+  6. All x/y values keep entities within the 1280x720 world
+  7. Collectible labels match the theme vocabulary
+  8. Info facts are accurate and age-appropriate
+
+──────────────────────────────────────────────────────────────────────────
+10c. Validation rules — the model must never break these
+──────────────────────────────────────────────────────────────────────────
+
+MUST have exactly 1 entity with tag "player"
+MUST have exactly 1 entity with tag "goal"
+MUST have exactly 1 entity named "Ground" (or tag "platform" with y=620)
+MUST have exactly 1 entity with tag "background"
+Player MUST be at x=80, y=520
+Ground MUST be at x=0, y=620
+Goal  MUST be at approximately x=1160, y=558
+All entities MUST be within x: 0-1280 and y: 0-720
+Enemies MUST NOT appear if grade < 5
+Collectibles MUST have is_trigger: true on their collider
+Platforms MUST have is_trigger absent or false (they are solid)
+Player MUST have rigid_body component
+Platforms and ground MUST NOT have rigid_body
+Background MUST NOT have a collider
+scene_meta.grade MUST be a string, not an integer
+scale_x for floating platforms MUST equal collider width / 32.0
+
+──────────────────────────────────────────────────────────────────────────
+10d. Common mistakes to avoid (train the model NOT to do these)
+──────────────────────────────────────────────────────────────────────────
+
+BAD: Putting is_trigger: true on a platform (player falls through)
+BAD: Forgetting rigid_body on enemies (they float instead of walking)
+BAD: Using scale_x=1.0 on ground (ground is only 32px wide, not 1280)
+BAD: Setting grade as integer "grade": 5 instead of string "grade": "5"
+BAD: Placing entities outside the world (x > 1280 or y > 720)
+BAD: Using a texture path that doesn't match the theme slug
+BAD: Forgetting the Background entity (black screen with no backdrop)
+BAD: Two entities with the same name
+BAD: Adding a goal component to the player (player becomes the exit)
+BAD: Enemy patrol_max_x < patrol_min_x (enemy freezes)
+BAD: jump_force as positive (player cannot jump — stuck on ground)
+
+──────────────────────────────────────────────────────────────────────────
+10e. Training data format suggestion
+──────────────────────────────────────────────────────────────────────────
+
+Each training example is a pair:
+
+  INPUT  (user message):
+    "Generate an EduEngine scene. Topic: [prompt]. Subject: [subject]. Grade: [grade]."
+
+  OUTPUT (assistant message):
+    { ... complete valid scene JSON ... }
+
+Recommended training data size: 50-200 examples minimum.
+Cover all 10 themes with multiple grade levels each.
+Include some vague prompts (grade/theme auto-detected) for robustness.
+
+Example training pairs to generate:
+  - "photosynthesis" at grades 2, 4, 6, 8
+  - "space" at grades 3, 5, 7, 10
+  - "mathematics" at grades 1, 4, 7, 12
+  - (repeat for all 10 themes)
+  - Vague prompts: "fun science game", "educational platformer", "quiz game"
+
+──────────────────────────────────────────────────────────────────────────
+10f. System prompt for the AI model
+──────────────────────────────────────────────────────────────────────────
+
+Use this exact system prompt when calling the AI model:
+
+---
+You are a JSON generator for EduEngine, a 2D educational platformer game engine.
+Your only job is to output valid EduEngine scene JSON.
+Output ONLY the JSON object — no explanation, no markdown, no code fences.
+The JSON must start with { and end with }.
+Follow the EduEngine Scene JSON Specification exactly.
+---
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 11 — QUICK REFERENCE CARD
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ENTITY CHECKLIST (every scene needs all of these):
+  [ ] 1  Background       tags:["background"], no collider, layer 0
+  [ ] 1  Player           x=80 y=520, rigid_body, player_tag, layer 5
+  [ ] 1  Ground           x=0 y=620, scale 40x5, collider 1280x100
+  [ ] 3+ Platforms        y=280-580, is_one_way:true, scale_x=width/32
+  [ ] 3+ Collectibles     is_trigger:true, label + text_label must match
+  [ ] 1+ Info Signs       y=590, is_trigger:true, "?" label + info_zone fact
+  [ ] 0+ Enemies          grade>=5 only, rigid_body, patrol range
+  [ ] 1  Goal Flag        x=1160 y=558, is_trigger:true, goal:{}
+
+LAYER ORDER:
+  0=background  2=platforms  3=info sign base  4=items/enemies/goal
+  5=player/info "?"  6=text labels
+
+COLOURS: [R, G, B, A]  values 0-255  A=255 opaque  A=220 slight transparency
+
+TRIGGER = true  → overlap only (collectibles, info, goal)
+TRIGGER = false → solid collision (player, platforms, ground, enemies)
+
+SCALE FORMULAS:
+  background:       scale_x=1.0,   scale_y=1.0
+  player:           scale_x=1.5,   scale_y=1.5
+  ground:           scale_x=40.0,  scale_y=5.0
+  floating platform: scale_x=width/32.0,  scale_y=1.0
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

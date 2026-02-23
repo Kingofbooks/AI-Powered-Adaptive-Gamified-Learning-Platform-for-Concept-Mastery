@@ -1,0 +1,18 @@
+# EduEngine Backend — Python dependencies
+# Install with:  pip install -r backend/requirements.txt
+#
+# NOTE: No API key needed — uses Ollama (free, local AI).
+#       Install Ollama first: https://ollama.com/download
+#       Then pull a model:    ollama pull llama3.1
+
+# Web framework
+fastapi
+
+# ASGI server  (run with: uvicorn main:app --reload)
+uvicorn[standard]
+
+# HTTP calls to Ollama
+requests
+
+# Allows file uploads if needed later
+python-multipart

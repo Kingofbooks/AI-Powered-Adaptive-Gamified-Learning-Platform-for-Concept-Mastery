@@ -1,0 +1,247 @@
+{
+  "scene_meta": {
+    "id": "newtons_laws_grade7",
+    "title": "Newton's 3 Laws of Motion — Grade 7",
+    "subject": "physics",
+    "grade": "7",
+    "ai_prompt": "teach Newton's 3 laws of motion for grade 7",
+    "learning_objectives": [
+      "Understand Newton's First Law (Inertia)",
+      "Understand Newton's Second Law (Force = mass × acceleration)",
+      "Understand Newton's Third Law (Action-Reaction)"
+    ]
+  },
+  "world_settings": {
+    "gravity": 980.0,
+    "background_color": [15, 15, 35, 255],
+    "theme": "physics"
+  },
+  "entities": [
+    {
+      "name": "Background",
+      "tags": ["background"],
+      "components": {
+        "transform": { "x": 0, "y": 0, "scale_x": 1.0, "scale_y": 1.0 },
+        "sprite": {
+          "texture": "assets/images/physics/background.png",
+          "color": [255, 255, 255, 255],
+          "layer": 0
+        }
+      }
+    },
+    {
+      "name": "Player",
+      "tags": ["player"],
+      "components": {
+        "transform": { "x": 80, "y": 520, "scale_x": 1.5, "scale_y": 1.5 },
+        "sprite": {
+          "texture": "assets/images/physics/player.png",
+          "color": [255, 255, 255, 255],
+          "layer": 5
+        },
+        "rigid_body": { "mass": 1.0, "gravity_scale": 1.0 },
+        "collider": { "offset_x": 4, "width": 24, "height": 32 },
+        "player_tag": { "move_speed": 220, "jump_force": -580, "max_jumps": 2 }
+      }
+    },
+    {
+      "name": "Ground",
+      "tags": ["platform"],
+      "components": {
+        "transform": { "x": 0, "y": 620, "scale_x": 40.0, "scale_y": 5.0 },
+        "sprite": {
+          "texture": "assets/images/physics/platform.png",
+          "color": [70, 100, 150, 255],
+          "layer": 2
+        },
+        "collider": { "width": 1280, "height": 100, "is_one_way": false }
+      }
+    },
+    {
+      "name": "Platform_Law1",
+      "tags": ["platform"],
+      "components": {
+        "transform": { "x": 250, "y": 480, "scale_x": 8.0, "scale_y": 2.0 },
+        "sprite": {
+          "texture": "assets/images/physics/platform.png",
+          "color": [70, 100, 150, 255],
+          "layer": 2
+        },
+        "collider": { "width": 256, "height": 64, "is_one_way": true }
+      }
+    },
+    {
+      "name": "Platform_Law2",
+      "tags": ["platform"],
+      "components": {
+        "transform": { "x": 550, "y": 400, "scale_x": 8.0, "scale_y": 2.0 },
+        "sprite": {
+          "texture": "assets/images/physics/platform.png",
+          "color": [70, 100, 150, 255],
+          "layer": 2
+        },
+        "collider": { "width": 256, "height": 64, "is_one_way": true }
+      }
+    },
+    {
+      "name": "Platform_Law3",
+      "tags": ["platform"],
+      "components": {
+        "transform": { "x": 850, "y": 320, "scale_x": 8.0, "scale_y": 2.0 },
+        "sprite": {
+          "texture": "assets/images/physics/platform.png",
+          "color": [70, 100, 150, 255],
+          "layer": 2
+        },
+        "collider": { "width": 256, "height": 64, "is_one_way": true }
+      }
+    },
+    {
+      "name": "Collectible_Law1",
+      "tags": ["collectible"],
+      "components": {
+        "transform": { "x": 250, "y": 420, "scale_x": 1.5, "scale_y": 1.5 },
+        "sprite": {
+          "texture": "assets/images/physics/collectible.png",
+          "color": [255, 200, 50, 220],
+          "layer": 4
+        },
+        "collider": { "width": 28, "height": 28, "is_trigger": true },
+        "text_label": { "text": "LAW 1", "font_size": 12, "color": [255, 255, 255, 255] }
+      }
+    },
+    {
+      "name": "Collectible_Law2",
+      "tags": ["collectible"],
+      "components": {
+        "transform": { "x": 550, "y": 340, "scale_x": 1.5, "scale_y": 1.5 },
+        "sprite": {
+          "texture": "assets/images/physics/collectible.png",
+          "color": [100, 200, 255, 220],
+          "layer": 4
+        },
+        "collider": { "width": 28, "height": 28, "is_trigger": true },
+        "text_label": { "text": "LAW 2", "font_size": 12, "color": [255, 255, 255, 255] }
+      }
+    },
+    {
+      "name": "Collectible_Law3",
+      "tags": ["collectible"],
+      "components": {
+        "transform": { "x": 850, "y": 260, "scale_x": 1.5, "scale_y": 1.5 },
+        "sprite": {
+          "texture": "assets/images/physics/collectible.png",
+          "color": [150, 255, 150, 220],
+          "layer": 4
+        },
+        "collider": { "width": 28, "height": 28, "is_trigger": true },
+        "text_label": { "text": "LAW 3", "font_size": 12, "color": [255, 255, 255, 255] }
+      }
+    },
+    {
+      "name": "InfoZone_Law1",
+      "tags": ["info"],
+      "components": {
+        "transform": { "x": 250, "y": 590, "scale_x": 1.5, "scale_y": 1.5 },
+        "sprite": {
+          "texture": "assets/images/physics/info_sign.png",
+          "color": [220, 180, 60, 220],
+          "layer": 3
+        },
+        "collider": { "width": 36, "height": 36, "is_trigger": true },
+        "text_label": { "text": "?", "font_size": 18, "color": [0, 0, 0, 255] },
+        "info_zone": {
+          "fact": "First Law: An object at rest stays at rest, and an object in motion stays in motion unless acted upon by a force.",
+          "title": "Newton's First Law (Inertia)"
+        }
+      }
+    },
+    {
+      "name": "InfoZone_Law2",
+      "tags": ["info"],
+      "components": {
+        "transform": { "x": 550, "y": 590, "scale_x": 1.5, "scale_y": 1.5 },
+        "sprite": {
+          "texture": "assets/images/physics/info_sign.png",
+          "color": [220, 180, 60, 220],
+          "layer": 3
+        },
+        "collider": { "width": 36, "height": 36, "is_trigger": true },
+        "text_label": { "text": "?", "font_size": 18, "color": [0, 0, 0, 255] },
+        "info_zone": {
+          "fact": "Second Law: Force equals mass times acceleration (F = m × a). More force creates more acceleration!",
+          "title": "Newton's Second Law (F=ma)"
+        }
+      }
+    },
+    {
+      "name": "InfoZone_Law3",
+      "tags": ["info"],
+      "components": {
+        "transform": { "x": 850, "y": 590, "scale_x": 1.5, "scale_y": 1.5 },
+        "sprite": {
+          "texture": "assets/images/physics/info_sign.png",
+          "color": [220, 180, 60, 220],
+          "layer": 3
+        },
+        "collider": { "width": 36, "height": 36, "is_trigger": true },
+        "text_label": { "text": "?", "font_size": 18, "color": [0, 0, 0, 255] },
+        "info_zone": {
+          "fact": "Third Law: For every action, there is an equal and opposite reaction. Forces always come in pairs!",
+          "title": "Newton's Third Law (Action-Reaction)"
+        }
+      }
+    },
+    {
+      "name": "Enemy_Resistance1",
+      "tags": ["enemy"],
+      "components": {
+        "transform": { "x": 200, "y": 588, "scale_x": 1.2, "scale_y": 1.2 },
+        "sprite": {
+          "texture": "assets/images/physics/enemy.png",
+          "color": [255, 100, 100, 255],
+          "layer": 4
+        },
+        "collider": { "width": 30, "height": 32 },
+        "rigid_body": { "mass": 1.0, "gravity_scale": 1.0 },
+        "enemy": { "patrol_start": 180, "patrol_end": 320, "speed": 80 }
+      }
+    },
+    {
+      "name": "Enemy_Resistance2",
+      "tags": ["enemy"],
+      "components": {
+        "transform": { "x": 500, "y": 508, "scale_x": 1.2, "scale_y": 1.2 },
+        "sprite": {
+          "texture": "assets/images/physics/enemy.png",
+          "color": [255, 100, 100, 255],
+          "layer": 4
+        },
+        "collider": { "width": 30, "height": 32 },
+        "rigid_body": { "mass": 1.0, "gravity_scale": 1.0 },
+        "enemy": { "patrol_start": 480, "patrol_end": 620, "speed": 100 }
+      }
+    },
+    {
+      "name": "Goal_Flag",
+      "tags": ["goal"],
+      "components": {
+        "transform": { "x": 1160, "y": 558, "scale_x": 1.5, "scale_y": 1.5 },
+        "sprite": {
+          "texture": "assets/images/physics/goal.png",
+          "color": [255, 200, 50, 220],
+          "layer": 4
+        },
+        "collider": { "width": 40, "height": 60, "is_trigger": true },
+        "goal": { "level_complete": true },
+        "text_label": { "text": "GOAL", "font_size": 16, "color": [255, 255, 255, 255] }
+      }
+    }
+  ],
+  "game_rules": {
+    "objective": "Learn Newton's 3 Laws of Motion by collecting all law tokens and reaching the goal!",
+    "collectibles_required": 3,
+    "bonus_info": "Interact with info signs (?) to learn facts about each law. Enemies represent friction and resistance forces!",
+    "difficulty": "medium"
+  }
+}

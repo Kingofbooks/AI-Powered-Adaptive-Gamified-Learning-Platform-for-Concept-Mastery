@@ -8,7 +8,14 @@ Customize these settings to match your requirements
 # ============================================
 
 # LLM Model Selection
-LLM_MODEL = "gpt-4.1"  # You can also use "gpt-4", "gpt-3.5-turbo"
+LLM_MODEL = "gpt-4o"  # Primary model: gpt-4, gpt-4o, gpt-3.5-turbo
+BACKUP_MODEL = "gemini-2.0-flash"  # Secondary Backup: Gemini (free tier)
+GROQ_MODEL = "llama-3.1-70b-versatile"  # Tertiary Fallback: Groq (free tier, fast)
+OLLAMA_MODEL = "phi3"  # Quaternary: Local Ollama model (phi3, llama2, mistral, etc.)
+OLLAMA_URL = "http://localhost:11434/api/generate"  # Ollama local endpoint
+USE_GEMINI_BACKUP = True  # Enable Gemini fallback if OpenAI fails
+USE_GROQ_BACKUP = True  # Enable Groq fallback if Gemini fails
+USE_OLLAMA_BACKUP = False  # Enable Ollama fallback if Groq fails
 
 # API Token Limits
 MAX_TOKENS_SUMMARY = 1000      # Tokens for concept summarization
@@ -18,6 +25,7 @@ MAX_TOKENS_SPEED = 1500        # Tokens for speed challenge generation
 
 # Request Timeout (seconds)
 REQUEST_TIMEOUT = 120
+OLLAMA_TIMEOUT = 300  # Ollama (local) needs more time - 5 minutes for phi3
 
 # ============================================
 # Game Configuration
@@ -64,7 +72,7 @@ SPEED_SCORING = {
 # ============================================
 
 SERVER_HOST = "0.0.0.0"
-SERVER_PORT = 8000
+SERVER_PORT = 8001
 DEBUG_MODE = False
 
 # CORS Settings

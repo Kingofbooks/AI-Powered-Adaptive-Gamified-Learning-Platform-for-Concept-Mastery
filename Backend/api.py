@@ -10,22 +10,20 @@ from datetime import datetime
 from typing import Optional
 import logging
 
-# Import database and models
-from database import init_db, get_db
-from auth import create_access_token, decode_access_token
+from game_generation_service import GameGenerationService
+from database import get_db
 from schemas import (
-    UserCreate, UserLogin, UserResponse, UserStats,
-    GameRequest, GameResponse, GameResultResponse,
-    ProgressResponse, UserProgressResponse,
-    LearningPathCreate, LearningPathResponse,
-    DashboardResponse, ConceptDetailResponse,
-    QuizSubmission, PuzzleSubmission, SpeedSubmission,
-    RegisterRequest, LoginRequest, TokenResponse, UserRoleEnum
+    TokenResponse, RegisterRequest, LoginRequest, UserResponse,
+    GameRequest, GameResponse, GameResultResponse, UserCreate, UserLogin,
+    UserStats, QuizSubmission, PuzzleSubmission, SpeedSubmission,
+    UserProgressResponse, LearningPathResponse, LearningPathCreate, 
+    GamePromptRequest, GameGenerationResponse
 )
-from services import (
-    UserService, GameService, ConceptService,
-    ProgressService, LearningPathService, DashboardService
-)
+
+
+# Add this after the existing imports
+# ============================================
+
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -953,16 +951,166 @@ async def root():
     3. Create game: POST /games/generate
     4. Submit results: POST /games/quiz/submit
     5. View dashboard: GET /dashboard/{user_id}
+    
+    ✨ NEW - Game Generation Endpoints:
+    1. POST /ai/generate-game - Generate complete game from prompt
+    2. GET /ai/game/{scene_id} - Get game information
+    3. POST /ai/launch-game/{scene_id} - Launch game engine
+    4. GET /ai/games - List all generated games
     """
     return {
         "name": "AI Learning Platform Backend",
         "version": "1.0.0",
         "description": "Integrated backend connecting AI, database, and frontend",
         "documentation": "http://localhost:8000/docs",
-        "status": "running"
+        "status": "running",
+        "game_generation": {
+            "endpoints": [
+                "POST /ai/generate-game",
+                "GET /ai/game/{scene_id}",
+                "POST /ai/launch-game/{scene_id}",
+                "GET /ai/games"
+            ]
+        }
     }
+
+
+# ============================================
+# LAYER 2: GAME GENERATION ENDPOINTS
+# ============================================
+
+@app.post("/ai/generate-game", response_model=GameGenerationResponse)
+async def generate_game(request: GamePromptRequest):
+    """
+    🎮 **Generate a Complete Educational Game**
+    
+    This is the main endpoint that orchestrates the entire workflow:
+    1. Receives prompt from frontend/user
+    2. Calls AI-Agents to generate scene JSON
+    3. Saves scene to GameEngine directory
+    4. Returns game info ready for launch
+    
+    **Parameters:**
+    - `prompt` (required): Natural language description
+      - Example: "teach photosynthesis for grade 5"
+    - `grade` (optional): Override detected grade (1-12)
+    - `subject` (optional): Override detected subject
+    
+    **Response:**
+    - `scene_id`: Unique identifier for the generated game
+    - `title`: Human-readable game title
+    - `scene_file`: Path where scene JSON was saved
+    - `entities_count`: Number of game entities
+    
+    **Example Request:**
+    ```json
+    {
+      "prompt": "space adventure for grade 3 students"
+    }
+    ```
+    
+    **Example Response:**
+    ```json
+    {
+      "success": true,
+      "scene_id": "space_grade3",
+      "title": "Space — Grade 3",
+      "subject": "space",
+      "grade": "3",
+      "scene_file": "/path/to/GameEngine/data/scenes/space_grade3.json",
+      "entities_count": 15,
+      "message": "✓ Game ready: Space — Grade 3"
+    }
+    ```
+    """
+    try:
+        logger.info(f"\n📥 Received game generation request: {request.prompt}")
+        
+        # Call the orchestration service
+        result = GameGenerationService.generate_game(
+            prompt=request.prompt,
+            grade=request.grade,
+            subject=request.subject
+        )
+        
+        if result.get("success"):
+            logger.info(f"✅ Game generated successfully: {result['scene_id']}")
+            return GameGenerationResponse(**result)
+        else:
+            logger.error(f"❌ Game generation failed: {result.get('error')}")
+            return GameGenerationResponse(
+                success=False,
+                message=result.get("message", "Game generation failed"),
+                error=result.get("error")
+            )
+            
+    except Exception as e:
+        logger.error(f"❌ Endpoint error: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Game generation failed: {str(e)}"
+        )
+
+
+@app.get("/ai/game/{scene_id}")
+async def get_game_info(scene_id: str):
+    """
+    Get information about a previously generated game
+    
+    **Parameters:**
+    - `scene_id`: Scene identifier (e.g., "photosynthesis_grade5")
+    
+    **Returns:** Scene metadata and entity information
+    """
+    try:
+        result = GameGenerationService.get_game_info(scene_id)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/ai/games")
+async def list_games():
+    """
+    List all previously generated games in the system
+    
+    **Returns:** Array of game information objects
+    """
+    try:
+        result = GameGenerationService.list_generated_games()
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/ai/launch-game/{scene_id}")
+async def launch_game(scene_id: str):
+    """
+    🚀 Launch the game engine with a generated scene
+    
+    **Parameters:**
+    - `scene_id`: Scene to load
+    
+    **Returns:** Process info if successful launch
+    
+    **Note:** Game will open in a new window on the server machine
+    """
+    try:
+        logger.info(f"\n🚀 Launch request for scene: {scene_id}")
+        result = GameGenerationService.launch_game(scene_id)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================
+
+
+@app.get("/")
+async def root():
+    return {"message": "AI Learning Platform Backend", "status": "running"}
 
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=4001)

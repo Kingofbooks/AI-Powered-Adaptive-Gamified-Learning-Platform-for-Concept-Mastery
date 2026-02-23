@@ -1,0 +1,218 @@
+{
+  "scene_meta": {
+    "id": "photosynthesis_basics_v1",
+    "title": "Photosynthesis Adventure",
+    "subject": "photosynthesis",
+    "grade": "7",
+    "generated_by": "AI-Tutor-v1",
+    "ai_prompt": "A 2D platformer game about Photosynthesis for 7th Grade biology students"
+  },
+
+  "world_settings": {
+    "gravity": 980.0,
+    "background_color": [12, 28, 18, 255],
+    "background_image": "assets/images/forest_bg.bmp",
+    "ambient_music": "assets/audio/forest_ambient.ogg",
+    "time_limit_seconds": 300
+  },
+
+  "entities": [
+
+    {
+      "name": "Player",
+      "tags": ["player"],
+      "components": {
+        "transform":  { "x": 100, "y": 520, "scale_x": 1.5, "scale_y": 1.5, "rotation": 0 },
+        "sprite":     { "texture": "assets/images/player.bmp", "color": [80, 200, 255, 255], "layer": 5 },
+        "rigid_body": { "velocity_x": 0, "velocity_y": 0, "mass": 1.0, "gravity_scale": 1.0, "is_kinematic": false },
+        "collider":   { "offset_x": 4, "offset_y": 0, "width": 24, "height": 32, "is_trigger": false },
+        "player_tag": { "move_speed": 220, "jump_force": -580, "max_jumps": 2 }
+      }
+    },
+
+    {
+      "name": "Ground",
+      "tags": ["platform", "ground"],
+      "components": {
+        "transform": { "x": 0, "y": 600, "scale_x": 1.0, "scale_y": 1.0 },
+        "sprite":    { "texture": "", "color": [40, 100, 40, 255], "layer": 2 },
+        "collider":  { "offset_x": 0, "offset_y": 0, "width": 1280, "height": 120, "is_trigger": false },
+        "platform":  { "is_one_way": false }
+      }
+    },
+
+    {
+      "name": "Platform_A",
+      "tags": ["platform"],
+      "components": {
+        "transform": { "x": 250, "y": 480 },
+        "sprite":    { "texture": "", "color": [30, 80, 30, 255], "layer": 2 },
+        "collider":  { "width": 160, "height": 20 },
+        "platform":  { "is_one_way": true }
+      }
+    },
+
+    {
+      "name": "Platform_B",
+      "tags": ["platform"],
+      "components": {
+        "transform": { "x": 500, "y": 380 },
+        "sprite":    { "texture": "", "color": [30, 80, 30, 255], "layer": 2 },
+        "collider":  { "width": 160, "height": 20 },
+        "platform":  { "is_one_way": true }
+      }
+    },
+
+    {
+      "name": "Platform_C",
+      "tags": ["platform"],
+      "components": {
+        "transform": { "x": 760, "y": 290 },
+        "sprite":    { "texture": "", "color": [30, 80, 30, 255], "layer": 2 },
+        "collider":  { "width": 200, "height": 20 },
+        "platform":  { "is_one_way": true }
+      }
+    },
+
+    {
+      "name": "SunOrb_Collectible",
+      "tags": ["collectible"],
+      "components": {
+        "transform":   { "x": 310, "y": 440 },
+        "sprite":      { "texture": "", "color": [255, 220, 50, 200], "layer": 4 },
+        "collider":    { "width": 24, "height": 24, "is_trigger": true },
+        "collectible": { "point_value": 20, "badge_id": "", "label": "Sunlight Energy" },
+        "text_label":  { "text": "☀", "color": [255, 230, 0, 255], "font_size": 20, "layer": 6 },
+        "learning_meta": {
+          "concept": "Light Energy Absorption",
+          "explanation": "Sunlight provides the energy that powers photosynthesis.",
+          "difficulty": 2,
+          "bloom_level": "remember"
+        }
+      }
+    },
+
+    {
+      "name": "CO2_Molecule_1",
+      "tags": ["collectible"],
+      "components": {
+        "transform":   { "x": 560, "y": 340 },
+        "sprite":      { "texture": "", "color": [150, 180, 220, 180], "layer": 4 },
+        "collider":    { "width": 28, "height": 28, "is_trigger": true },
+        "collectible": { "point_value": 25, "badge_id": "", "label": "CO₂ Absorbed" },
+        "text_label":  { "text": "CO₂", "color": [200, 220, 255, 255], "font_size": 14, "layer": 6 },
+        "learning_meta": {
+          "concept": "Carbon Dioxide Uptake",
+          "explanation": "CO₂ enters the leaf through tiny pores called stomata.",
+          "difficulty": 2,
+          "bloom_level": "understand"
+        }
+      }
+    },
+
+    {
+      "name": "H2O_Molecule",
+      "tags": ["collectible"],
+      "components": {
+        "transform":   { "x": 820, "y": 250 },
+        "sprite":      { "texture": "", "color": [100, 160, 255, 180], "layer": 4 },
+        "collider":    { "width": 28, "height": 28, "is_trigger": true },
+        "collectible": { "point_value": 25, "badge_id": "", "label": "Water Absorbed" },
+        "text_label":  { "text": "H₂O", "color": [150, 200, 255, 255], "font_size": 14, "layer": 6 },
+        "learning_meta": {
+          "concept": "Water Uptake",
+          "explanation": "Water is absorbed by plant roots and transported to the leaves.",
+          "difficulty": 2,
+          "bloom_level": "understand"
+        }
+      }
+    },
+
+    {
+      "name": "ChlorophyllPower_Collectible",
+      "tags": ["collectible"],
+      "components": {
+        "transform":   { "x": 680, "y": 250 },
+        "sprite":      { "texture": "", "color": [50, 220, 80, 200], "layer": 4 },
+        "collider":    { "width": 30, "height": 30, "is_trigger": true },
+        "collectible": {
+          "point_value": 40,
+          "badge_id": "photosynthesis_1",
+          "label": "Chlorophyll Badge"
+        },
+        "text_label":  { "text": "🌿", "color": [80, 255, 100, 255], "font_size": 18, "layer": 6 },
+        "learning_meta": {
+          "concept": "Chlorophyll — the Green Pigment",
+          "explanation": "Chlorophyll is the pigment in chloroplasts that captures light energy.",
+          "difficulty": 3,
+          "bloom_level": "understand"
+        }
+      }
+    },
+
+    {
+      "name": "SceneLabel_Title",
+      "tags": ["ui"],
+      "components": {
+        "transform":  { "x": 20, "y": 15 },
+        "text_label": {
+          "text": "Photosynthesis Adventure — Collect the molecules!",
+          "color": [220, 255, 200, 220],
+          "font_size": 18,
+          "layer": 20
+        }
+      }
+    },
+
+    {
+      "name": "SceneLabel_Hint",
+      "tags": ["ui"],
+      "components": {
+        "transform":  { "x": 20, "y": 45 },
+        "text_label": {
+          "text": "Walk into the glowing zones to answer questions.",
+          "color": [160, 220, 160, 180],
+          "font_size": 14,
+          "layer": 20
+        }
+      }
+    }
+
+  ],
+
+  "educational_content": {
+    "reflection_triggers": [
+
+      {
+        "trigger_id":   "trigger_photosynthesis_q1",
+        "question":     "Explain in your own words: what do plants need to perform photosynthesis, and what do they produce?",
+        "subject":      "photosynthesis",
+        "hint":         "Think about: sunlight, water, carbon dioxide... and what comes out of the process.",
+        "point_reward": 50,
+        "attempts":     3,
+        "trigger_zone": { "x": 380, "y": 440, "w": 80, "h": 80 }
+      },
+
+      {
+        "trigger_id":   "trigger_photosynthesis_q2",
+        "question":     "What is the role of chlorophyll in photosynthesis? Why do leaves appear green?",
+        "subject":      "photosynthesis",
+        "hint":         "Chlorophyll is a pigment — think about what pigments do with light.",
+        "point_reward": 60,
+        "attempts":     2,
+        "trigger_zone": { "x": 700, "y": 260, "w": 100, "h": 80 }
+      },
+
+      {
+        "trigger_id":   "trigger_photosynthesis_q3",
+        "question":     "Write the chemical equation for photosynthesis using words (not symbols).",
+        "subject":      "photosynthesis",
+        "hint":         "Reactants go in, products come out. Sunlight is the energy source.",
+        "point_reward": 80,
+        "attempts":     3,
+        "trigger_zone": { "x": 950, "y": 540, "w": 120, "h": 60 }
+      }
+
+    ]
+  }
+}

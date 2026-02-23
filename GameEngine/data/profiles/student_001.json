@@ -1,0 +1,59 @@
+{
+    "academic_points": 0,
+    "badges": [
+        {
+            "description": "Submit your very first reflection answer.",
+            "icon": "⭐",
+            "id": "first_answer",
+            "name": "First Steps",
+            "unlocked": false
+        },
+        {
+            "description": "Achieve a mastery score of 10/10.",
+            "icon": "🏆",
+            "id": "perfect_score",
+            "name": "Full Marks",
+            "unlocked": false
+        },
+        {
+            "description": "Score ≥ 7 on three consecutive questions.",
+            "icon": "🔥",
+            "id": "streak_3",
+            "name": "On a Roll",
+            "unlocked": false
+        },
+        {
+            "description": "Accumulate 100 Academic Points.",
+            "icon": "💯",
+            "id": "points_100",
+            "name": "Century",
+            "unlocked": false
+        },
+        {
+            "description": "Accumulate 500 Academic Points.",
+            "icon": "📚",
+            "id": "points_500",
+            "name": "Scholar",
+            "unlocked": false
+        },
+        {
+            "description": "Complete a full scene without skipping.",
+            "icon": "🎓",
+            "id": "scene_complete",
+            "name": "Level Clear",
+            "unlocked": false
+        },
+        {
+            "description": "Answer a photosynthesis question correctly.",
+            "icon": "🌱",
+            "id": "photosynthesis_1",
+            "name": "Green Thumb",
+            "unlocked": false
+        }
+    ],
+    "correct_answers": 0,
+    "mastery_average": 0.0,
+    "mastery_count": 0,
+    "student_id": "student_001",
+    "total_questions": 0
+}

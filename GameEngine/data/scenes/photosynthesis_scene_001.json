@@ -1,0 +1,408 @@
+{
+  "scene_meta": {
+    "id": "photosynthesis_scene_001",
+    "title": "Photosynthesis Adventure \u2014 Grade 5",
+    "subject": "photosynthesis",
+    "grade": "5",
+    "ai_prompt": "teach photosynthesis for grade 5"
+  },
+  "world_settings": {
+    "gravity": 980.0,
+    "background_color": [
+      12,
+      28,
+      12,
+      255
+    ]
+  },
+  "entities": [
+    {
+      "name": "Background",
+      "tags": [
+        "background"
+      ],
+      "texture": "assets/images/photosynthesis/background.png",
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "layer": 0,
+      "x": 0,
+      "y": 0,
+      "scale_x": 1.0,
+      "scale_y": 1.0
+    },
+    {
+      "name": "Player",
+      "tags": [
+        "player"
+      ],
+      "texture": "assets/images/photosynthesis/player.png",
+      "x": 80,
+      "y": 520,
+      "scale_x": 1.5,
+      "scale_y": 1.5,
+      "rigid_body": {
+        "gravity_scale": 1.0
+      },
+      "collider": {
+        "width": 24,
+        "height": 32
+      },
+      "player_tag": {
+        "move_speed": 220,
+        "jump_force": -580,
+        "max_jumps": 2
+      }
+    },
+    {
+      "name": "Ground",
+      "tags": [
+        "platform"
+      ],
+      "texture": "assets/images/photosynthesis/platform.png",
+      "color": [
+        30,
+        90,
+        30,
+        255
+      ],
+      "layer": 2,
+      "x": 0,
+      "y": 620,
+      "scale_x": 40.0,
+      "scale_y": 5.0,
+      "collider": {
+        "width": 1280,
+        "height": 100
+      },
+      "is_one_way": false
+    },
+    {
+      "name": "Floating_Platform_1",
+      "tags": [
+        "platform"
+      ],
+      "texture": "assets/images/photosynthesis/platform.png",
+      "x": 200,
+      "y": 480,
+      "scale_x": 4.0,
+      "color": [
+        30,
+        90,
+        30,
+        255
+      ],
+      "layer": 2,
+      "is_one_way": true
+    },
+    {
+      "name": "Floating_Platform_2",
+      "tags": [
+        "platform"
+      ],
+      "texture": "assets/images/photosynthesis/platform.png",
+      "x": 400,
+      "y": 380,
+      "scale_x": 4.0,
+      "color": [
+        30,
+        90,
+        30,
+        255
+      ],
+      "layer": 2,
+      "is_one_way": true
+    },
+    {
+      "name": "Floating_Platform_3",
+      "tags": [
+        "platform"
+      ],
+      "texture": "assets/images/photosynthesis/platform.png",
+      "x": 600,
+      "y": 480,
+      "scale_x": 4.0,
+      "color": [
+        30,
+        90,
+        30,
+        255
+      ],
+      "layer": 2,
+      "is_one_way": true
+    },
+    {
+      "name": "Floating_Platform_4",
+      "tags": [
+        "platform"
+      ],
+      "texture": "assets/images/photosynthesis/platform.png",
+      "x": 800,
+      "y": 280,
+      "scale_x": 4.0,
+      "color": [
+        30,
+        90,
+        30,
+        255
+      ],
+      "layer": 2,
+      "is_one_way": true
+    },
+    {
+      "name": "Collectible_CO2",
+      "tags": [
+        "collectible"
+      ],
+      "texture": "assets/images/photosynthesis/collectible.png",
+      "x": 250,
+      "y": 450,
+      "color": [
+        80,
+        220,
+        80,
+        220
+      ],
+      "layer": 4,
+      "collider": {
+        "width": 28,
+        "height": 28,
+        "is_trigger": true
+      },
+      "text_label": {
+        "text": "CO\u2082",
+        "font_size": 13
+      }
+    },
+    {
+      "name": "Collectible_H2O",
+      "tags": [
+        "collectible"
+      ],
+      "texture": "assets/images/photosynthesis/collectible.png",
+      "x": 450,
+      "y": 350,
+      "color": [
+        80,
+        220,
+        80,
+        220
+      ],
+      "layer": 4,
+      "collider": {
+        "width": 28,
+        "height": 28,
+        "is_trigger": true
+      },
+      "text_label": {
+        "text": "H\u2082O",
+        "font_size": 13
+      }
+    },
+    {
+      "name": "Collectible_Sunlight",
+      "tags": [
+        "collectible"
+      ],
+      "texture": "assets/images/photosynthesis/collectible.png",
+      "x": 650,
+      "y": 450,
+      "color": [
+        80,
+        220,
+        80,
+        220
+      ],
+      "layer": 4,
+      "collider": {
+        "width": 28,
+        "height": 28,
+        "is_trigger": true
+      },
+      "text_label": {
+        "text": "Sunlight",
+        "font_size": 13
+      }
+    },
+    {
+      "name": "Collectible_Glucose",
+      "tags": [
+        "collectible"
+      ],
+      "texture": "assets/images/photosynthesis/collectible.png",
+      "x": 850,
+      "y": 250,
+      "color": [
+        80,
+        220,
+        80,
+        220
+      ],
+      "layer": 4,
+      "collider": {
+        "width": 28,
+        "height": 28,
+        "is_trigger": true
+      },
+      "text_label": {
+        "text": "Glucose",
+        "font_size": 13
+      }
+    },
+    {
+      "name": "Collectible_O2",
+      "tags": [
+        "collectible"
+      ],
+      "texture": "assets/images/photosynthesis/collectible.png",
+      "x": 1050,
+      "y": 180,
+      "color": [
+        80,
+        220,
+        80,
+        220
+      ],
+      "layer": 4,
+      "collider": {
+        "width": 28,
+        "height": 28,
+        "is_trigger": true
+      },
+      "text_label": {
+        "text": "O\u2082",
+        "font_size": 13
+      }
+    },
+    {
+      "name": "Info_Sign_1",
+      "tags": [
+        "info"
+      ],
+      "texture": "assets/images/photosynthesis/info_sign.png",
+      "x": 100,
+      "y": 590,
+      "color": [
+        220,
+        180,
+        60,
+        220
+      ],
+      "layer": 3,
+      "collider": {
+        "width": 36,
+        "height": 36,
+        "is_trigger": true
+      },
+      "text_label": {
+        "text": "?"
+      },
+      "info_zone": {
+        "fact": "Photosynthesis converts light energy into chemical energy stored as glucose."
+      }
+    },
+    {
+      "name": "Info_Sign_2",
+      "tags": [
+        "info"
+      ],
+      "texture": "assets/images/photosynthesis/info_sign.png",
+      "x": 500,
+      "y": 590,
+      "color": [
+        220,
+        180,
+        60,
+        220
+      ],
+      "layer": 3,
+      "collider": {
+        "width": 36,
+        "height": 36,
+        "is_trigger": true
+      },
+      "text_label": {
+        "text": "?"
+      },
+      "info_zone": {
+        "fact": "CO\u2082 enters leaves through tiny pores called stomata."
+      }
+    },
+    {
+      "name": "Info_Sign_3",
+      "tags": [
+        "info"
+      ],
+      "texture": "assets/images/photosynthesis/info_sign.png",
+      "x": 900,
+      "y": 590,
+      "color": [
+        220,
+        180,
+        60,
+        220
+      ],
+      "layer": 3,
+      "collider": {
+        "width": 36,
+        "height": 36,
+        "is_trigger": true
+      },
+      "text_label": {
+        "text": "?"
+      },
+      "info_zone": {
+        "fact": "Chlorophyll is the green pigment in leaves that captures sunlight."
+      }
+    },
+    {
+      "name": "Enemy_1",
+      "tags": [
+        "enemy"
+      ],
+      "texture": "assets/images/photosynthesis/enemy.png",
+      "x": 400,
+      "y": 588,
+      "collider": {
+        "width": 30,
+        "height": 32
+      },
+      "rigid_body": {},
+      "enemy": {
+        "patrol_range": [
+          300,
+          500
+        ],
+        "speed": 50
+      }
+    },
+    {
+      "name": "Goal_Flag",
+      "tags": [
+        "goal"
+      ],
+      "texture": "assets/images/photosynthesis/goal.png",
+      "x": 1160,
+      "y": 558,
+      "color": [
+        80,
+        220,
+        80,
+        220
+      ],
+      "layer": 4,
+      "collider": {
+        "width": 40,
+        "height": 60,
+        "is_trigger": true
+      },
+      "goal": {},
+      "text_label": {
+        "text": "GOAL"
+      }
+    }
+  ]
+}

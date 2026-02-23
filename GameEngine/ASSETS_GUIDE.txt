@@ -1,0 +1,398 @@
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EduEngine — Complete Assets Guide
+  Sprites · Audio · Fonts · Custom Art · Using Assets in JSON
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+QUICK REFERENCE
+───────────────
+  Generate ALL built-in sprites:   python3 generate_assets.py --all
+  Generate ONE theme:               python3 generate_assets.py --theme biology
+  Generate ALL audio:               python3 generate_audio.py --all
+  List available themes:            python3 generate_assets.py --list
+
+  Images land in:  assets/images/<theme>/
+  Audio  lands in: assets/audio/<theme>/
+  Fonts  live in:  assets/fonts/
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART 1  —  ASSET FOLDER LAYOUT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+GameEngine/
+  assets/
+    images/
+      biology/
+        background.png      1280 × 720  full-screen backdrop
+        player.png            24 ×  32  the student character
+        platform.png          32 ×  20  repeating tile block
+        enemy.png             30 ×  32  patrol enemy
+        goal.png              40 ×  60  level-end flag
+        collectible_0.png     28 ×  28  pickup item #1
+        collectible_1.png     28 ×  28  pickup item #2
+        collectible_2.png     28 ×  28  pickup item #3
+        collectible_3.png     28 ×  28  pickup item #4
+        collectible_4.png     28 ×  28  pickup item #5
+      chemistry/              (same file names, different colours)
+      default/                (fallback — always exists)
+      geography/
+      history/
+      mathematics/
+      photosynthesis/
+      physics/
+      space/
+      water_cycle/
+    audio/
+      biology/
+        bgm.wav               background music loop
+        collect.wav           collectible pickup sound
+        jump.wav              player jump sound
+        goal.wav              level complete fanfare
+      (same structure for other themes)
+    fonts/
+      OpenSans-Regular.ttf    default UI font
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART 2  —  GENERATING BUILT-IN SPRITES (generate_assets.py)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Requirements
+  pip3 install Pillow
+  (or: sudo apt install python3-pil)
+
+All sprites are drawn 100% in Python code using Pillow — no external images
+needed.  Each theme has a unique colour palette, background style, and
+collectible shapes baked in.
+
+Commands
+──────────────────────────────────────────────────────────────────────────
+  # Generate every theme at once (recommended for first setup):
+  python3 generate_assets.py --all
+
+  # Generate just one theme:
+  python3 generate_assets.py --theme space
+  python3 generate_assets.py --theme water_cycle    # use underscore for multi-word
+
+  # List all available theme slugs:
+  python3 generate_assets.py --list
+
+  # Write to a custom output folder:
+  python3 generate_assets.py --theme biology --out /tmp/my_assets
+
+Available Theme Slugs
+──────────────────────────────────────────────────────────────────────────
+  photosynthesis   biology        chemistry      physics
+  mathematics      history        geography      space
+  water_cycle      default
+
+  NOTE: Theme slug = what goes in the texture path in your JSON.
+        "biology" slug → assets/images/biology/player.png
+
+What Each Generated File Looks Like
+──────────────────────────────────────────────────────────────────────────
+  background.png  — gradient sky (unique per theme) with decorative
+                    elements: stars (space), trees (biology), clouds
+                    (water_cycle), atoms (chemistry), etc.
+
+  player.png      — simple stick-figure / humanoid shape tinted with the
+                    theme's primary colour.  Transparent background (RGBA).
+
+  platform.png    — a small tile block.  Platforms in-engine are stretched
+                    via scale_x/scale_y so this one tile covers any length.
+
+  enemy.png       — a rectangular enemy figure in a contrasting colour.
+
+  goal.png        — a flag pole and flag in the theme's accent colour.
+
+  collectible_N.png — small icons (coins, atoms, drops, etc.) representing
+                      educational items to collect.  _0 through _4 give 5
+                      variations — use different numbers in your JSON for
+                      visual variety.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART 3  —  GENERATING AUDIO (generate_audio.py)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Requirements
+  None — uses Python's built-in wave + math + struct modules only.
+  No pip packages needed.
+
+Commands
+──────────────────────────────────────────────────────────────────────────
+  # Generate audio for all themes:
+  python3 generate_audio.py --all
+
+  # Generate for one theme:
+  python3 generate_audio.py --theme space
+
+  # Custom output folder:
+  python3 generate_audio.py --theme biology --out /tmp/audio
+
+Output Files per Theme
+──────────────────────────────────────────────────────────────────────────
+  collect.wav   (0.35 s)  — chime sound when player picks up a collectible
+  jump.wav      (0.18 s)  — short sweep upward when player jumps
+  goal.wav      (1.40 s)  — victory fanfare when reaching the goal flag
+  bgm.wav       (8.00 s)  — background music loop (engine loops it)
+
+Each theme has slightly different frequencies and brightness so they feel
+thematically distinct.
+
+When Audio Plays (automatically)
+──────────────────────────────────────────────────────────────────────────
+  Event              Sound file       Who triggers it
+  ─────────────────  ───────────────  ──────────────────
+  Player jumps       jump.wav         InputSystem
+  Collect item       collect.wav      TriggerSystem
+  Reach goal flag    goal.wav         TriggerSystem
+  Scene loads        bgm.wav starts   PromptSystem (after generating)
+
+Audio requires libsdl2-mixer-dev:
+  sudo apt install libsdl2-mixer-dev
+  (Engine compiles and runs silently without it — audio just does nothing)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART 4  —  USING YOUR OWN CUSTOM ART
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The engine loads any PNG/BMP/JPG file from the texture path you put in the
+JSON.  Replace the generated files with your own art at any time.
+
+Step 1 — Create your images at the right sizes
+  background.png  →  1280 × 720 px   (must fill the full screen)
+  player.png      →  24 × 32 px      (can be bigger — engine scales via scale_x/y)
+  platform.png    →  32 × 20 px      (engine tiles/stretches this with scale)
+  collectible_N   →  28 × 28 px      (N = 0 to 4)
+  enemy.png       →  30 × 32 px
+  goal.png        →  40 × 60 px
+
+  Tip: Use transparent backgrounds (RGBA PNG) for non-rectangular shapes.
+  Tip: Any size works — use scale_x / scale_y in JSON to resize in-engine.
+
+Step 2 — Save them to the right folder
+  assets/images/<your_slug>/background.png
+  assets/images/<your_slug>/player.png
+  ...
+
+  Example — creating a "dinosaur" theme:
+    mkdir -p assets/images/dinosaur
+    cp ~/my_art/dino_bg.png     assets/images/dinosaur/background.png
+    cp ~/my_art/dino_player.png assets/images/dinosaur/player.png
+    ...
+
+Step 3 — Reference your slug in the JSON
+  "sprite": { "texture": "assets/images/dinosaur/player.png", ... }
+
+Step 4 — Run the game
+  F5 in Build Mode reloads the scene — new textures appear immediately.
+
+Mixing Art Sources
+──────────────────────────────────────────────────────────────────────────
+  You can mix your own art with generated art in the same scene:
+  - Use generated background + your own player sprite
+  - Reference files from different theme folders
+  - Point the texture path at any file anywhere under GameEngine/
+
+  Example JSON sprite entry using a custom image:
+  "sprite": {
+    "texture": "assets/images/my_custom_theme/player.png",
+    "color":   [255, 255, 255, 255],
+    "layer":   5
+  }
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART 5  —  USING ASSETS IN SCENE JSON
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Every entity that appears on screen needs a "sprite" component.
+The "texture" field is a relative path from the GameEngine/ folder.
+
+SpriteComponent Fields
+──────────────────────────────────────────────────────────────────────────
+  Field          Type           Default    Meaning
+  ─────────────  ─────────────  ─────────  ──────────────────────────────
+  texture        string         ""         Path to PNG/BMP/JPG file
+  color          [R, G, B, A]   [255,255,255,255]  Tint colour (white = no tint)
+  layer          int            0          Draw order (higher = on top)
+  visible        bool           true       Show / hide this sprite
+  flip_h         bool           false      Mirror sprite horizontally
+
+Layer Values — Standard Ordering
+──────────────────────────────────────────────────────────────────────────
+  Layer  Usage
+  ─────  ────────────────────────────────────────────
+    0    Background (always behind everything)
+    1    Far background decorations
+    2    Platforms, ground tiles
+    3    Enemies
+    4    Collectibles, info signs
+    5    Player
+    6    Text labels, UI overlays
+
+  The engine draws layer 0 first, layer 6 last (on top).
+
+Color Tinting
+──────────────────────────────────────────────────────────────────────────
+  "color": [255, 255, 255, 255]  →  no tint (white = show original image)
+  "color": [255,   0,   0, 255]  →  red tint
+  "color": [255, 255, 255, 128]  →  50% transparent
+
+  If no texture is set, the engine draws a solid colour rectangle instead.
+  This is useful for placeholder art or debug shapes:
+  "sprite": { "texture": "", "color": [100, 200, 100, 255], "layer": 2 }
+
+Complete Sprite Examples
+──────────────────────────────────────────────────────────────────────────
+  Background (always x:0, y:0, scale to fill screen):
+  "sprite": { "texture": "assets/images/biology/background.png",
+              "color": [255,255,255,255], "layer": 0 }
+
+  Player:
+  "sprite": { "texture": "assets/images/biology/player.png",
+              "color": [255,255,255,255], "layer": 5 }
+
+  Platform (stretched with scale_x):
+  "transform": { "x": 200, "y": 400, "scale_x": 10.0, "scale_y": 2.0 },
+  "sprite":    { "texture": "assets/images/biology/platform.png",
+                 "color": [255,255,255,255], "layer": 2 }
+
+  Collectible (invisible until player approaches):
+  "sprite": { "texture": "assets/images/biology/collectible_0.png",
+              "color": [255,220,0,255], "layer": 4 }
+
+  Fallback coloured rectangle (no image):
+  "sprite": { "texture": "", "color": [255, 100, 100, 255], "layer": 3 }
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART 6  —  HOW SPRITES ARE SCALED IN-ENGINE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The rendered size of a sprite on screen is:
+
+  screen_width  = image_pixel_width  × transform.scale_x
+  screen_height = image_pixel_height × transform.scale_y
+
+Examples using a 32×20 platform.png:
+  scale_x: 1,  scale_y: 1   →  32×20 px on screen (tiny)
+  scale_x: 10, scale_y: 2   →  320×40 px  (medium platform)
+  scale_x: 40, scale_y: 5   →  1280×100 px (full ground)
+
+Examples using a 1280×720 background.png:
+  scale_x: 1,  scale_y: 1   →  1280×720 px  (fills screen exactly)
+
+Ground entity recipe (always do this):
+  image:    platform.png   (32×20)
+  scale_x:  40             →  32×40 = 1280 px wide (fills screen)
+  scale_y:  5              →  20×5  = 100  px tall  (thick ground)
+  x: 0, y: 620             →  sits at bottom of 720px screen
+
+Collider must match visual size:
+  When you scale a sprite, also update the collider width/height to match.
+  The engine does NOT auto-size colliders from sprites.
+
+  collider: { "width": 1280, "height": 100 }   ← matches ground above
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART 7  —  COMPLETE FIRST-TIME SETUP CHECKLIST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  [ ] Install Pillow:
+        pip3 install Pillow
+
+  [ ] Install SDL2 mixer (for audio):
+        sudo apt install libsdl2-mixer-dev
+
+  [ ] Generate all sprites:
+        python3 generate_assets.py --all
+
+  [ ] Generate all audio:
+        python3 generate_audio.py --all
+
+  [ ] Check assets exist:
+        ls assets/images/biology/
+        ls assets/audio/biology/
+
+  [ ] Rebuild the engine (to pick up mixer if just installed):
+        [see build command in MEMORY.md or README]
+
+  [ ] Launch the engine:
+        DISPLAY=:1 ./EduEngine
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART 8  —  ADDING A COMPLETELY NEW THEME
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Option A — Use your own art (simplest)
+  1. Make a folder:   mkdir -p assets/images/cooking
+  2. Put PNG files:   background.png, player.png, platform.png,
+                      enemy.png, goal.png, collectible_0..4.png
+  3. Reference it:    "texture": "assets/images/cooking/player.png"
+  No code changes needed.
+
+Option B — Add a procedural theme to generate_assets.py
+  Open generate_assets.py and look for the THEMES list near the top.
+  Add a new Theme() entry:
+
+    Theme(
+        name         = "cooking",
+        bg_top       = (255, 220, 150),   # warm kitchen sky colour
+        bg_bottom    = (200, 140,  80),
+        player       = (180,  80,  40),   # chef colours
+        platform     = (140,  90,  50),   # wooden counter
+        enemy        = (200,  60,  60),   # red chili enemy
+        collectibles = [(255,200,0),(255,140,0),(200,80,0),(255,240,200),(160,100,50)],
+        bg_style     = "plain",           # "stars"|"trees"|"clouds"|"plain"
+    ),
+
+  Then run:
+    python3 generate_assets.py --theme cooking
+
+Option C — Use your friend's AI model to generate images
+  If your friend's custom model can generate images (not just JSON), have it
+  output PNG files to assets/images/<slug>/  using the same filenames.
+  The engine will pick them up automatically.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART 9  —  TROUBLESHOOTING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Problem: Engine shows coloured boxes instead of sprites
+  → Sprites haven't been generated yet.
+     Run:  python3 generate_assets.py --all
+  → Texture path in JSON is wrong.
+     Check the path is relative to GameEngine/ (e.g. assets/images/biology/player.png)
+  → File doesn't exist at that path.
+     Run:  ls assets/images/<theme>/
+
+Problem: generate_assets.py fails with "No module named PIL"
+  → Run:  pip3 install Pillow
+  → Or:   sudo apt install python3-pil
+
+Problem: Audio plays no sound but engine runs fine
+  → SDL2 mixer not installed.
+     Run:  sudo apt install libsdl2-mixer-dev
+     Then rebuild the engine.
+  → Audio files not generated.
+     Run:  python3 generate_audio.py --all
+
+Problem: My custom PNG looks stretched or wrong in-engine
+  → Adjust scale_x / scale_y in the entity's transform component.
+  → Make sure collider width/height matches the scaled size.
+
+Problem: My custom PNG shows as a black rectangle
+  → The image might be RGB not RGBA.  Pillow fix:
+     img = img.convert("RGBA")
+  → Or open in GIMP → Image → Mode → RGB with alpha, export as PNG.
+
+Problem: Audio plays wrong theme's sounds
+  → The PromptSystem loads audio by theme slug after generating a scene.
+  → To manually load a theme's audio in the editor, reload the scene (F5).
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

@@ -1,0 +1,1088 @@
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EduEngine — Complete Project Overview
+  Every file, folder, and piece of code explained
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+WHAT IS EDUENGINE?
+──────────────────
+EduEngine is a 2D educational platformer game engine built in C++ with SDL2.
+A teacher or student types a description like "a biology game about cells for
+grade 5" and the engine automatically builds a playable platformer with the
+right theme, sprites, audio, collectibles, enemies, and educational facts.
+
+The project has three parts that work together:
+  1. C++ Desktop Engine  — the actual game engine (runs the game)
+  2. Python Web Backend  — a FastAPI server so the engine can be used
+                           from a web browser
+  3. React Web Frontend  — a browser UI for generating and managing games
+
+The C++ engine is the core. The web parts are optional additions.
+https://github.com/Kingofbooks/AI-Powered-Adaptive-Gamified-Learning-Platform-for-Concept-Mastery.git
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ROOT FOLDER MAP  ( GameEngine/ )
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+GameEngine/
+│
+├── EduEngine                  ← Compiled game engine binary (run this)
+├── src/                       ← All C++ source code
+├── assets/                    ← Images, audio, fonts used by the game
+├── data/                      ← Scene JSON files and player profiles
+├── vendor/                    ← Third-party libraries (ImGui, nlohmann/json)
+├── frontend/                  ← React web UI
+├── backend/                   ← FastAPI Python web server
+├── exports/                   ← Exported game packages (created by Export button)
+├── build/                     ← CMake build folder (not used — we use g++ directly)
+│
+├── generate_assets.py         ← Generates PNG sprites for all 10 themes
+├── generate_audio.py          ← Generates WAV sound files for all 10 themes
+├── call_claude_api.py         ← Python bridge: C++ engine calls this for AI JSON
+│
+├── setup.sh                   ← One-time installation script
+├── requirements.txt           ← Python + system dependencies list
+├── CMakeLists.txt             ← CMake config (not actively used)
+├── imgui.ini                  ← ImGui window layout saved automatically
+│
+├── PROJECT_OVERVIEW.txt       ← This file
+├── SCENE_JSON_SPECIFICATION.txt ← Full JSON format reference
+├── PHYSICS_GUIDE.txt          ← Physics system + components reference
+├── ASSETS_GUIDE.txt           ← How to generate and use assets
+└── AI_INTEGRATION_GUIDE.txt   ← How to connect Ollama / custom AI models
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 1 — C++ SOURCE CODE  ( src/ )
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+src/
+├── main.cpp
+├── core/
+│   ├── Engine.h / Engine.cpp
+│   └── ecs/
+│       ├── Entity.h
+│       ├── Component.h
+│       ├── Registry.h
+│       └── System.h
+├── editor/
+│   ├── EditorTools.h / EditorTools.cpp
+├── scene/
+│   ├── SceneLoader.h / SceneLoader.cpp
+├── prompt/
+│   ├── PromptSystem.h / PromptSystem.cpp
+├── audio/
+│   ├── AudioPlayer.h / AudioPlayer.cpp
+├── systems/
+│   ├── InputSystem.h
+│   ├── PhysicsSystem.h
+│   ├── EnemySystem.h
+│   ├── RenderSystem.h
+│   ├── TriggerSystem.h / TriggerSystem.cpp
+└── educational/
+    ├── AdaptiveController.h / .cpp
+    ├── ReflectionSystem.h / .cpp
+    └── RewardEconomy.h / .cpp
+
+─────────────────────────────────────────────────────────────────────────
+src/main.cpp  (79 lines)
+─────────────────────────────────────────────────────────────────────────
+The entry point of the entire program. This is where execution starts.
+
+What it does:
+  1. Prints a startup message to the terminal
+  2. Creates an EngineConfig struct with settings (window size, title, etc.)
+  3. Checks if a scene path was passed as a command-line argument
+     — If yes: loads that scene directly and skips Prompt Mode
+       (this is how exported games launch — run.sh passes the scene file)
+     — If no: starts in Prompt Mode (normal editor startup)
+  4. Creates the Engine object and calls Init()
+  5. Registers all game systems in priority order:
+       InputSystem   (priority  0) — reads keyboard
+       PhysicsSystem (priority 10) — gravity and collisions
+       EnemySystem   (priority 15) — enemy patrol movement
+       TriggerSystem (priority 20) — collectibles, info zones, goal
+       RenderSystem  (priority 100) — draws everything
+  6. Calls engine.Run() — this is the game loop (runs until window closes)
+  7. Calls engine.Shutdown() — cleans up memory
+
+Key design: main.cpp is intentionally kept tiny. All real logic lives in
+Engine and the systems. main.cpp just wires them together.
+
+─────────────────────────────────────────────────────────────────────────
+src/core/Engine.h / Engine.cpp  (116 + 196 lines)
+─────────────────────────────────────────────────────────────────────────
+The heart of the engine. Owns every other major system and runs the
+main game loop.
+
+Engine.h defines:
+  EngineMode enum:
+    Prompt  — full-screen AI generation panel (no game visible)
+    Build   — game visible with ImGui editor panels overlaid
+    Play    — game running, editor completely hidden
+
+  EngineConfig struct:
+    window_title, window_width (1280), window_height (720),
+    vsync, default_scene path, start_in_prompt_mode flag
+
+  Engine class — owns:
+    m_window        — the SDL2 window
+    m_renderer      — SDL2 2D renderer (draws everything)
+    m_hud_font      — TTF font used for the info popup text
+    m_registry      — the ECS entity/component storage
+    m_systems       — list of all registered game systems
+    m_scene_loader  — reads/writes scene JSON files
+    m_editor        — ImGui overlay (all editor UI)
+    m_prompt        — the prompt/AI generation system
+    m_popup_text    — text of the info popup (shown when player enters InfoZone)
+    m_popup_timer   — how many seconds left to show the popup
+
+Engine.cpp implements:
+  Init()     — creates SDL2 window, renderer, initialises ImGui,
+               AudioPlayer, tries to load the default scene.
+  Run()      — the main game loop:
+                 while (running):
+                   ProcessEvents() → Update(dt) → Render(dt)
+               Uses SDL_GetTicks() to calculate delta time (dt = time
+               since last frame in seconds, typically 0.016 at 60fps)
+  Shutdown() — stops audio, destroys SDL2 objects, frees memory
+  Update(dt) — calls Update(dt) on every registered system in priority order
+  Render(dt) — clears screen, calls Render on systems, draws editor UI,
+               draws info popup overlay, presents frame
+  RenderInfoPopup() — draws the dark semi-transparent popup box with text
+                       that appears when player touches an info sign or goal
+  LoadScene() — tells SceneLoader to read a JSON file, clears old entities,
+                clears texture cache, sets the current scene path
+  ShowInfoPopup() — called by TriggerSystem to display educational fact text
+
+─────────────────────────────────────────────────────────────────────────
+src/core/ecs/Entity.h
+─────────────────────────────────────────────────────────────────────────
+Defines what an "entity" is in the ECS (Entity Component System).
+
+ECS = a game architecture pattern where:
+  ENTITIES  = just an ID number (like 0, 1, 2, 3...)
+  COMPONENTS = plain data attached to an entity (position, sprite, etc.)
+  SYSTEMS   = code that processes entities with certain components
+
+Entity struct:
+  id       — a uint32_t number (the entity's unique identity)
+  version  — used to detect if an entity ID has been reused
+
+NULL_ENTITY = a special ID (max uint32 value) meaning "no entity".
+Used as a sentinel when no entity is selected or found.
+
+─────────────────────────────────────────────────────────────────────────
+src/core/ecs/Component.h  (114 lines)
+─────────────────────────────────────────────────────────────────────────
+Defines ALL data components in the game. Components are pure data structs
+— no functions, no logic, just variables.
+
+TransformComponent — position and size
+  x, y          — world position in pixels (0,0 = top-left)
+  scale_x, scale_y — stretch multipliers
+  rotation      — degrees clockwise (visual only)
+
+RigidBodyComponent — physics movement
+  velocity_x, velocity_y — current speed in pixels/second
+  mass          — reserved (not used in current physics)
+  gravity_scale — multiplier on gravity (1.0 = normal, 0.0 = floaty)
+  is_kinematic  — if true, PhysicsSystem ignores this entity
+  on_ground     — set by PhysicsSystem each frame (true = touching platform)
+
+ColliderComponent — hit-box rectangle
+  offset_x, offset_y — shift collider from entity position
+  width, height — collider size in pixels (NOT auto-sized from sprite)
+  is_trigger    — if true: detect overlap but don't push entity out
+                  (used for collectibles, info zones, goal flag)
+
+SpriteComponent — what to draw
+  texture_path  — file path to PNG/BMP/JPG (relative to GameEngine/)
+  color         — RGBA tint (255,255,255,255 = no tint)
+  layer         — draw order (0=back, 100=front)
+  visible       — show/hide this sprite
+  flip_h        — mirror horizontally
+  texture       — runtime SDL_Texture pointer (filled by RenderSystem, not JSON)
+
+TextLabelComponent — on-screen text
+  text, color, font_size, layer
+
+PlayerTagComponent — player movement settings
+  move_speed    — horizontal speed in pixels/second
+  jump_force    — jump velocity (MUST be negative — Y grows downward)
+  max_jump_count — number of jumps before needing to land (2 = double jump)
+  current_jumps — runtime counter, resets on landing
+
+CollectibleComponent — pickup items
+  point_value   — score added when collected
+  label         — educational term displayed on pickup
+  collected     — runtime flag, becomes true after pickup
+
+PlatformComponent — static solid surfaces
+  is_one_way    — false = solid on all sides, true = land-on-top only
+
+GoalComponent — level end trigger
+  reached       — runtime flag, becomes true when player touches it
+
+InfoZoneComponent — educational fact popup trigger
+  text          — the fact shown in the popup
+  repeat        — false = show once, true = show every time player enters
+  show_timer, triggered — runtime state
+
+EnemyComponent — patrol enemy
+  patrol_min_x, patrol_max_x — left and right bounds
+  speed         — movement speed in pixels/second
+  moving_right  — current direction (auto-flips at bounds)
+
+─────────────────────────────────────────────────────────────────────────
+src/core/ecs/Registry.h
+─────────────────────────────────────────────────────────────────────────
+The ECS storage system. Manages all entities and their components.
+Uses a "sparse set" pattern — each component type has its own array
+indexed by entity ID for fast access.
+
+Key methods:
+  CreateEntity()           — creates a new entity, returns {id, version}
+  DestroyEntity(entity)    — removes entity and all its components
+  DestroyAllEntities()     — called on scene reload to wipe everything
+  AddComponent<T>(id, T)  — attach a component to an entity
+  GetComponent<T>(id)     — get a reference to a component
+  HasComponent<T>(id)     — check if entity has a component
+  AddTag(id, string)      — add a string tag ("player", "enemy", etc.)
+  GetName(id) / SetName() — human-readable name for the editor
+
+  View<T1, T2, ...>(lambda) — iterate over all entities that have ALL
+    of the listed component types. This is how systems work — a system
+    calls View to find every entity it should process.
+
+    Example: PhysicsSystem calls
+      registry.View<TransformComponent, RigidBodyComponent>(
+        [](EntityID id, TransformComponent& t, RigidBodyComponent& rb) {
+          // this runs for every entity that has both components
+          t.y += rb.velocity_y * dt;
+        });
+
+─────────────────────────────────────────────────────────────────────────
+src/core/ecs/System.h
+─────────────────────────────────────────────────────────────────────────
+Base class that all game systems inherit from.
+
+System interface:
+  Priority()       — int, lower runs first (Input=0, Render=100)
+  Name()           — string name for debugging
+  Update(dt, reg)  — called every frame to run game logic
+  Render(renderer, reg) — called every frame for drawing (only RenderSystem uses this)
+  ProcessEvents(event, reg) — called for each SDL event (only InputSystem uses this)
+
+─────────────────────────────────────────────────────────────────────────
+src/editor/EditorTools.h / EditorTools.cpp  (header + 710 lines)
+─────────────────────────────────────────────────────────────────────────
+The entire visual editor UI, built with Dear ImGui. This is what you see
+on screen when not in Play Mode.
+
+Three UI modes:
+
+  PROMPT MODE (full-screen panel):
+    — Text area for typing game description
+    — Subject input field, grade number input
+    — Radio buttons: "Mock (offline)" or "Custom API" (Ollama/AI)
+    — "Generate Game" button → calls PromptSystem.Generate()
+    — Spinner animation while generating
+    — JSON preview (read-only) after generation
+    — Automatically switches to Build Mode when done
+
+  BUILD MODE (floating panels):
+    Scene Hierarchy panel:
+      — Lists all entities by name and ID
+      — "[+] New Entity" button to add blank entities
+      — "[x] Delete" button to remove selected entity
+      — Click any entity to select it
+
+    Property Inspector panel:
+      — Shows and edits all components of the selected entity
+      — InspectTransform  — drag X, Y, scale, rotation
+      — InspectSprite     — texture path, colour, layer, flip
+      — InspectRigidBody  — velocity (read-only mostly), gravity scale
+      — InspectCollider   — offset, width, height, trigger toggle
+      — InspectPlayerTag  — move speed, jump force, max jumps
+      — InspectCollectible — point value, label
+      — InspectTextLabel  — text, colour, font size
+      — InspectPlatform   — one-way toggle
+      — InspectInfoZone   — text, repeat toggle
+      — InspectEnemy      — patrol min/max X, speed
+      — InspectGoal       — (no editable fields, just presence indicator)
+      — "Add Component" menu — adds any component to the entity
+
+    Scene Toolbar panel (bottom):
+      — Text field with scene file path
+      — Save button  — writes current state to JSON file
+      — Load button  — reads JSON file into engine
+      — Reload F5 button — hot-reloads current scene
+      — Export Game button — opens export modal
+
+    Export Modal popup:
+      — Text field with destination folder path
+      — "Browse..." button — opens kdialog folder picker
+      — "Export" button — calls DoExportGame()
+      — "Cancel" button
+
+  PERFORMANCE HUD (always visible in Build Mode):
+    — FPS counter and frame time in milliseconds
+    — Line graph of FPS over the last 90 frames
+
+  DoExportGame(engine, dest_dir):
+    — Reads scene JSON to extract scene ID and theme slug
+    — Creates dest_dir/<scene_id>/ folder structure
+    — Copies: EduEngine binary, scene JSON, theme images,
+              theme audio, fonts
+    — Writes run.sh launch script
+    — Shows green toast message with the export path
+
+─────────────────────────────────────────────────────────────────────────
+src/scene/SceneLoader.h / SceneLoader.cpp  (59 + 212 lines)
+─────────────────────────────────────────────────────────────────────────
+Reads and writes scene JSON files. This is the bridge between the JSON
+data format and the live ECS entities inside the engine.
+
+SceneMeta struct: id, title, subject, grade, ai_prompt
+WorldSettings struct: gravity, background colour (RGBA)
+
+LoadScene(path, registry):
+  1. Opens the JSON file
+  2. Calls ParseMeta() — reads scene_meta fields
+  3. Calls ParseWorld() — reads world_settings (gravity, bg colour)
+  4. For each item in "entities" array → calls SpawnEntity()
+
+SpawnEntity(json, registry):
+  — Creates a new entity with CreateEntity()
+  — Sets its name from the "name" field
+  — Adds tags from the "tags" array
+  — For each component key present in JSON → calls the right parser:
+      "transform"   → ParseTransform  → adds TransformComponent
+      "sprite"      → ParseSprite     → adds SpriteComponent
+      "rigid_body"  → ParseRigidBody  → adds RigidBodyComponent
+      "collider"    → ParseCollider   → adds ColliderComponent
+      "player_tag"  → ParsePlayerTag  → adds PlayerTagComponent
+      "collectible" → ParseCollectible → adds CollectibleComponent
+      "text_label"  → ParseTextLabel  → adds TextLabelComponent
+      "platform"    → ParsePlatform   → adds PlatformComponent
+      "info_zone"   → ParseInfoZone   → adds InfoZoneComponent
+      "enemy"       → ParseEnemy      → adds EnemyComponent
+      "goal"        → ParseGoal       → adds GoalComponent
+
+SaveScene(path, registry):
+  — Iterates over all entities in the registry
+  — Checks which components each entity has
+  — Writes them back to JSON format
+  — Saves to file with 2-space indentation (pretty printed)
+
+HotReload(path, registry):
+  — Calls DestroyAllEntities() first
+  — Then calls LoadScene() fresh
+  — Used by F5 key and Reload button
+
+─────────────────────────────────────────────────────────────────────────
+src/prompt/PromptSystem.h / PromptSystem.cpp  (133 + 563 lines)
+─────────────────────────────────────────────────────────────────────────
+The AI game generation system. Has two modes: mock (offline) and API (AI).
+
+SubjectTheme struct:
+  Holds everything the procedural generator needs for one theme:
+  name, background colours, collectible names, educational facts,
+  platform colour, sky colour, etc.
+
+GenerationStatus enum: Idle, Running, Done, Error
+
+Generate(config):
+  — Takes a PromptConfig {prompt text, subject, grade, game_type}
+  — Spawns a background std::thread so the UI doesn't freeze
+  — Thread calls either GenerateMock() or CallApi()
+  — When done, stores result in m_result_json and sets status to Done
+  — EditorTools polls GetStatus() each frame to know when to react
+
+MOCK MODE (GenerateMock → BuildScene):
+  Step 1 — DetectTheme(prompt):
+    Scans the prompt text for keywords:
+      "photo", "plant", "chloro" → Photosynthesis theme
+      "space", "planet", "solar" → Space theme
+      "water", "rain", "cloud"   → Water Cycle theme
+      "math", "number", "algebra" → Mathematics theme
+      "history", "ancient"       → History theme
+      "chem", "atom", "molecule" → Chemistry theme
+      "phys", "force", "energy"  → Physics theme
+      "bio", "cell", "dna"       → Biology theme
+      "geo", "continent", "map"  → Geography theme
+      (anything else)            → Default theme
+
+  Step 2 — ThemeSlug(theme.name):
+    Converts theme display name to the asset folder slug
+    e.g. "Photosynthesis" → "photosynthesis"
+         "Water Cycle"    → "water_cycle"
+
+  Step 3 — Run generate_assets.py:
+    system("python3 generate_assets.py --theme <slug>")
+    Creates the PNG sprite files for this theme.
+    Non-fatal if Python/Pillow missing — coloured boxes used instead.
+
+  Step 4 — Run generate_audio.py:
+    system("python3 generate_audio.py --theme <slug>")
+    Creates the WAV sound files.
+    Then calls AudioPlayer::LoadTheme(slug) to start playing BGM.
+
+  Step 5 — Build the scene JSON:
+    Creates entities: Background, Player, Ground, Platforms (3-7),
+    Collectibles, InfoZones, Goal, Enemies (if grade >= 5)
+    — Number of platforms = 3 + (grade / 3), capped at 7
+    — Number of enemies   = grade / 3 if grade >= 5, else 0
+    — Platforms placed at random Y positions between 280-560
+    — Collectibles placed above each platform
+
+API MODE (CallApi):
+  — Writes a config JSON to /tmp/edu_prompt_cfg.json
+    { "prompt": "...", "subject": "...", "grade": 5 }
+  — Runs: python3 call_claude_api.py /tmp/edu_prompt_cfg.json
+    using popen() (opens a subprocess and captures its stdout)
+  — Reads the JSON output from the subprocess
+  — Validates it with json::parse()
+  — Returns the scene JSON string
+
+SaveToFile(output_dir):
+  — Takes the generated JSON string
+  — Extracts the scene ID from scene_meta.id
+  — Saves to output_dir/<scene_id>.json
+  — Returns the saved file path (Engine uses this to LoadScene())
+
+─────────────────────────────────────────────────────────────────────────
+src/audio/AudioPlayer.h / AudioPlayer.cpp  (55 + 145 lines)
+─────────────────────────────────────────────────────────────────────────
+A static wrapper around SDL2_mixer for playing game sounds.
+"Static" means you call it like AudioPlayer::PlayJump() without creating
+an object — the state is stored in file-scope variables.
+
+Uses #if __has_include(<SDL2/SDL_mixer.h>) — if SDL2_mixer is NOT
+installed on the system, all functions compile to empty no-ops.
+The engine builds and runs silently without it. No #ifdef clutter needed.
+
+Functions:
+  Init()          — calls Mix_OpenAudio() to start the audio system
+  Quit()          — calls Mix_CloseAudio() and Mix_Quit()
+  LoadTheme(slug) — loads 4 WAV files from assets/audio/<slug>/
+                    stops any playing BGM, frees old sounds,
+                    loads collect.wav, jump.wav, goal.wav, bgm.wav,
+                    starts playing bgm.wav on loop
+  PlayCollect()   — plays collect.wav (called by TriggerSystem)
+  PlayJump()      — plays jump.wav (called by InputSystem)
+  PlayGoal()      — plays goal.wav (called by TriggerSystem)
+  PlayBGM()       — starts BGM loop (called by LoadTheme)
+  StopBGM()       — stops BGM
+
+─────────────────────────────────────────────────────────────────────────
+src/systems/InputSystem.h  (85 lines)
+─────────────────────────────────────────────────────────────────────────
+Reads keyboard input and applies it to the player entity.
+Priority 0 — runs FIRST every frame so velocity is set before physics.
+
+ProcessEvents(event):
+  — Tracks key state: m_left, m_right, m_jump_pressed
+  — Keys: A/← for left, D/→ for right, Space/W/↑ for jump
+
+Update(dt):
+  — Finds every entity with PlayerTagComponent + RigidBodyComponent
+  — Sets velocity_x = 0, then adds/subtracts move_speed
+  — Jump logic:
+      if jump pressed AND NOT already consumed this press:
+        if on_ground OR current_jumps < max_jump_count:
+          velocity_y = jump_force  (negative = upward)
+          current_jumps++
+          mark jump as consumed
+          play jump sound
+      if jump key released: unmark as consumed (ready for next press)
+      if on_ground: reset current_jumps to 0
+
+m_jump_consumed flag prevents holding Space from jump-spamming.
+
+─────────────────────────────────────────────────────────────────────────
+src/systems/PhysicsSystem.h  (129 lines)
+─────────────────────────────────────────────────────────────────────────
+Applies gravity, integrates positions, and resolves platform collisions.
+Priority 10 — runs after Input, before Enemy and Trigger.
+
+Update(dt) — two phases:
+
+Phase 1 — Gravity and Integration:
+  For each entity with Transform + RigidBody (not kinematic):
+    velocity_y += gravity × gravity_scale × dt  (falls faster each frame)
+    x += velocity_x × dt
+    y += velocity_y × dt
+    on_ground = false (assume airborne, Phase 2 may set it true)
+
+Phase 2 — AABB Collision:
+  First: collect all platform boxes (Transform + Collider + Platform)
+  Then: for each dynamic entity (Transform + RigidBody + Collider):
+    for each platform:
+      if their rectangles overlap:
+        calculate how deep they overlap on X and Y
+        resolve along the SHALLOWER axis:
+          landing on top → push entity up, velocity_y=0, on_ground=true
+          hitting bottom → push entity down, velocity_y=0 (solid only)
+          hitting side   → push entity sideways, velocity_x=0 (solid only)
+    one-way platforms: only resolve when landing from above.
+
+AABBOverlap(ax,ay,aw,ah, bx,by,bw,bh):
+  Standard rectangle overlap test:
+  return ax < bx+bw && ax+aw > bx && ay < by+bh && ay+ah > by
+
+─────────────────────────────────────────────────────────────────────────
+src/systems/EnemySystem.h  (28 lines)
+─────────────────────────────────────────────────────────────────────────
+Controls patrol enemies. Very simple.
+Priority 15 — runs after Physics.
+
+Update(dt):
+  For each entity with Transform + EnemyComponent:
+    if moving_right: x += speed × dt
+    if moving_left:  x -= speed × dt
+    if x >= patrol_max_x: moving_right = false
+    if x <= patrol_min_x: moving_right = true
+
+Enemies do not use physics — they don't fall with gravity and don't
+push the player. They are purely visual obstacles.
+
+─────────────────────────────────────────────────────────────────────────
+src/systems/TriggerSystem.h / TriggerSystem.cpp  (37 + 69 lines)
+─────────────────────────────────────────────────────────────────────────
+Detects when the player overlaps trigger zones.
+Priority 20 — runs after Physics so positions are final.
+
+Update(dt):
+  Step 1: Find the player entity (has PlayerTag + Collider)
+          Get its world bounding box: px, py, pw, ph
+
+  Step 2: Check Collectibles
+    For each entity with Transform + Collider + Collectible:
+      if not already collected AND player box overlaps collectible box:
+        → col.collected = true (marks it done)
+        → sprite.visible = false (makes it disappear)
+        → m_score += point_value
+        → AudioPlayer::PlayCollect()
+        → log the label to console
+
+  Step 3: Check Info Zones
+    For each entity with Transform + Collider + InfoZone:
+      if (not triggered OR repeat=true) AND player overlaps:
+        → z.triggered = true
+        → z.show_timer = 5.0
+        → engine.ShowInfoPopup(z.text, 5.0)
+        → log the text to console
+
+  Step 4: Check Goal Flag
+    For each entity with Transform + Collider + Goal:
+      if not already reached AND player overlaps:
+        → g.reached = true
+        → engine.ShowInfoPopup("Level Complete! Great job!", 4.0)
+        → AudioPlayer::PlayGoal()
+        → log score to console
+
+─────────────────────────────────────────────────────────────────────────
+src/systems/RenderSystem.h  (170+ lines)
+─────────────────────────────────────────────────────────────────────────
+Draws everything to the screen.
+Priority 100 — always runs LAST.
+
+Render(renderer, registry):
+  Step 1: Collect all entities with Transform + Sprite that are visible
+          Sort them by layer value (low layer = drawn first = behind)
+  Step 2: For each entity in layer order:
+    If texture_path is not empty:
+      — Load texture from file on first use (cached in m_texture_cache)
+      — Query its native pixel size (width, height from the PNG file)
+      — Draw at: x=transform.x, y=transform.y,
+                 width=image_width × scale_x,
+                 height=image_height × scale_y
+      — Apply colour tint from sprite.color
+      — Apply flip_h if set
+    If texture_path is empty:
+      — Draw a solid colour rectangle instead
+      — Uses collider size if available, else 32×32
+  Step 3: Render all TextLabelComponents as TTF text
+
+LoadTexture(path):
+  — Checks m_texture_cache first (avoids reloading same file)
+  — Calls IMG_Load() — SDL2_image handles PNG, JPG, BMP, etc.
+  — Stores in cache keyed by path string
+  — Returns nullptr and logs warning if file not found
+    (entity then draws as coloured rectangle fallback)
+
+ClearCache():
+  — Called on scene reload
+  — Destroys all cached SDL_Textures so fresh files are loaded
+
+─────────────────────────────────────────────────────────────────────────
+src/educational/  (AdaptiveController, ReflectionSystem, RewardEconomy)
+─────────────────────────────────────────────────────────────────────────
+These three files implement the educational layer of the engine.
+They are compiled but not yet fully wired into the main game loop —
+they are scaffolding for future development.
+
+AdaptiveController.h / .cpp:
+  Tracks student performance (score, time, attempts) and adjusts
+  difficulty. Intended to slow enemies or reduce gap sizes for
+  struggling students, and increase difficulty for fast learners.
+
+ReflectionSystem.h / .cpp:
+  Intended to log learning events (collectibles picked up, facts read,
+  goal reached) and generate a "reflection report" per session.
+  Would integrate with data/profiles/<student_id>.json.
+
+RewardEconomy.h / .cpp:
+  A points and badge system. Different collectibles award different
+  amounts. Badges are earned for milestones (all collectibles in a
+  level, first goal reached, etc.).
+
+data/profiles/student_001.json:
+  An example student profile JSON — stores accumulated score,
+  completed scenes, badges. The educational systems read/write this.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 2 — PYTHON SCRIPTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+─────────────────────────────────────────────────────────────────────────
+generate_assets.py
+─────────────────────────────────────────────────────────────────────────
+Generates all PNG sprite files for the game using Python's Pillow library.
+Requires: pip3 install Pillow
+
+No internet required — draws everything mathematically in code.
+
+10 theme definitions (Theme class):
+  Each theme stores: name, background gradient colours (top/bottom),
+  player colour, platform colour, enemy colour, collectible colour list,
+  background style ("stars"/"trees"/"clouds"/"plain")
+
+For each theme it generates 10 PNG files:
+  background.png     1280×720  — gradient sky + decorative elements
+  player.png           24×32  — player character shape
+  platform.png         32×20  — platform tile (engine stretches with scale)
+  enemy.png            30×32  — enemy character
+  goal.png             40×60  — flag pole
+  collectible_0.png    28×28  — pickup item variation 0
+  collectible_1.png    28×28  — pickup item variation 1
+  collectible_2.png    28×28  — variation 2
+  collectible_3.png    28×28  — variation 3
+  collectible_4.png    28×28  — variation 4
+
+CLI usage:
+  python3 generate_assets.py --all              # all 10 themes
+  python3 generate_assets.py --theme biology    # one theme
+  python3 generate_assets.py --list             # show available slugs
+  python3 generate_assets.py --theme x --out /path  # custom output folder
+
+Called automatically by PromptSystem::BuildScene() when a game is generated.
+
+─────────────────────────────────────────────────────────────────────────
+generate_audio.py
+─────────────────────────────────────────────────────────────────────────
+Generates WAV sound files using only Python's built-in wave, math, and
+struct modules. No pip packages needed.
+
+For each theme generates 4 WAV files:
+  collect.wav  (0.35s)  — chime when collecting item (sine wave sweep up)
+  jump.wav     (0.18s)  — short blip on jump (frequency sweep)
+  goal.wav     (1.40s)  — victory fanfare (multi-note melody)
+  bgm.wav      (8.00s)  — background music loop (repeating note pattern)
+
+Each theme uses a different base frequency and brightness so they feel
+thematically different.
+
+CLI usage:
+  python3 generate_audio.py --all
+  python3 generate_audio.py --theme space
+  python3 generate_audio.py --list
+
+Called automatically by PromptSystem::BuildScene().
+
+─────────────────────────────────────────────────────────────────────────
+call_claude_api.py
+─────────────────────────────────────────────────────────────────────────
+The AI bridge between the C++ engine and a local Ollama AI model.
+Requires: pip install requests  and  Ollama running locally.
+
+How it's called:
+  The C++ PromptSystem writes a config file:
+    /tmp/edu_prompt_cfg.json  = { "prompt": "...", "subject": "...", "grade": 5 }
+  Then runs via popen():
+    python3 call_claude_api.py /tmp/edu_prompt_cfg.json
+  The script prints scene JSON to stdout.
+  C++ reads stdout and parses it.
+
+What the script does:
+  1. Reads the config JSON file passed as argument
+  2. Pings Ollama at http://localhost:11434/api/tags to check it's running
+  3. Sends a POST to /api/chat with:
+     — system prompt: teaches Ollama the exact JSON schema
+     — user message: the prompt + subject + grade
+     — format: "json" (forces valid JSON output)
+  4. _extract_json(): tries to parse the response as JSON,
+     strips markdown fences if needed, falls back to regex extraction
+  5. Retries up to 3 times on JSON parse failure (with lower temperature)
+  6. Prints the valid scene JSON to stdout
+
+Environment variables:
+  OLLAMA_HOST   (default: http://localhost:11434)
+  OLLAMA_MODEL  (default: llama3.1)
+
+To use a different AI model: just change OLLAMA_MODEL.
+To use a friend's model on a different server: change OLLAMA_HOST.
+No code changes needed.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 3 — WEB BACKEND  ( backend/ )
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+─────────────────────────────────────────────────────────────────────────
+backend/main.py
+─────────────────────────────────────────────────────────────────────────
+A FastAPI web server that exposes the game engine's AI generation as a
+REST API. This lets the React web UI generate games from a browser.
+
+Run with:   uvicorn backend.main:app --reload --port 8000
+
+Imports generate_scene() directly from call_claude_api.py.
+
+Endpoints:
+  GET  /api/health
+    Returns { "status": "ok", "ollama": { "reachable": true/false } }
+    Useful for checking if Ollama is running before trying to generate.
+
+  GET  /api/themes
+    Returns a list of the 10 available theme names.
+
+  POST /api/generate
+    Body: { "prompt": "...", "subject": "...", "grade": 5 }
+    Calls generate_scene() from call_claude_api.py.
+    Returns the full scene JSON object.
+
+  GET  /api/scenes
+    Lists all .json files in data/scenes/
+    Returns an array of { id, title, subject, grade } objects.
+
+  POST /api/save
+    Body: { "id": "scene_id", scene JSON fields... }
+    Saves the scene to data/scenes/<safe_id>.json
+
+  DELETE /api/scenes/{scene_id}
+    Deletes data/scenes/<scene_id>.json
+
+CORS is enabled for localhost:3000 and localhost:5173 (React dev servers).
+
+─────────────────────────────────────────────────────────────────────────
+backend/requirements.txt
+─────────────────────────────────────────────────────────────────────────
+Python packages needed for the backend:
+  fastapi          — web framework
+  uvicorn[standard] — ASGI server to run FastAPI
+  requests         — HTTP calls to Ollama
+  python-multipart — allows file uploads (for future features)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 4 — WEB FRONTEND  ( frontend/ )
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+A React application. Run with: cd frontend && npm run dev → http://localhost:3000
+
+─────────────────────────────────────────────────────────────────────────
+frontend/src/App.jsx
+─────────────────────────────────────────────────────────────────────────
+The main React component. Three-column layout:
+  Left column:   SceneList (saved scenes)
+  Middle column: GeneratorPanel (create new games)
+  Right column:  JsonViewer (preview the generated JSON)
+
+State:
+  scene    — the currently generated scene JSON object
+  scenes   — list of saved scene files from /api/scenes
+  status   — status message string ("Generating...", "Saved!", errors)
+  loading  — boolean, disables buttons while waiting
+
+Functions:
+  handleGenerate  → POST /api/generate → sets scene state
+  handleSave      → POST /api/save     → saves to data/scenes/
+  handleDownload  → creates a Blob and triggers browser download of the JSON
+  handleDeleteScene → DELETE /api/scenes/{id} → removes from list
+
+─────────────────────────────────────────────────────────────────────────
+frontend/src/components/GeneratorPanel.jsx
+─────────────────────────────────────────────────────────────────────────
+The main creation form:
+  — Textarea for the game description prompt
+  — Dropdown for Subject (10 themes)
+  — Slider for Grade (1-12)
+  — "Generate Game" button (disabled while loading)
+  — "Save to Engine" button (saves to data/scenes/)
+  — "Download JSON" button (browser download)
+
+─────────────────────────────────────────────────────────────────────────
+frontend/src/components/SceneList.jsx
+─────────────────────────────────────────────────────────────────────────
+Left sidebar showing saved scene files:
+  — Lists all scenes from data/scenes/ with title, subject, grade
+  — Refresh button to re-fetch the list
+  — Delete button (X) per scene → calls handleDeleteScene
+  — Click a scene to load it into the viewer (future: load into engine)
+
+─────────────────────────────────────────────────────────────────────────
+frontend/src/components/JsonViewer.jsx
+─────────────────────────────────────────────────────────────────────────
+Right panel that shows the generated scene JSON:
+  — Syntax-highlighted (strings, numbers, booleans in different colours)
+  — Entity count summary ("12 entities — 1 player, 4 platforms...")
+  — Copy to clipboard button
+
+─────────────────────────────────────────────────────────────────────────
+frontend/vite.config.js
+─────────────────────────────────────────────────────────────────────────
+Vite development server configuration.
+Proxy: all requests to /api/* are forwarded to http://localhost:8000
+This means React code can call fetch("/api/generate") without needing
+to know the backend URL.
+
+─────────────────────────────────────────────────────────────────────────
+frontend/package.json
+─────────────────────────────────────────────────────────────────────────
+Node.js project configuration.
+Dependencies: react, react-dom, vite
+Scripts: npm run dev (start), npm run build (production)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 5 — ASSETS FOLDER  ( assets/ )
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+assets/images/
+  10 theme folders (biology, chemistry, default, geography, history,
+                    mathematics, photosynthesis, physics, space, water_cycle)
+  Each contains:
+    background.png    1280×720  — the scene backdrop
+    player.png          24×32  — the student character
+    platform.png        32×20  — platform tile (stretched in-engine)
+    enemy.png           30×32  — patrol enemy
+    goal.png            40×60  — level-end flag
+    collectible_0..4.png 28×28  — 5 pickup item variations
+
+  Also at root level: forest_bg.bmp, player.bmp (legacy files, not used)
+
+assets/audio/
+  Currently generated for: default, space
+  (run python3 generate_audio.py --all to generate all 10 themes)
+  Each folder: bgm.wav, collect.wav, jump.wav, goal.wav
+
+assets/fonts/
+  OpenSans-Regular.ttf — the font used for all text in the game UI
+  (info popup, score display, text labels)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 6 — DATA FOLDER  ( data/ )
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+data/scenes/
+  All generated scene JSON files live here. These are the actual game
+  levels. The engine loads them with LoadScene().
+
+  Current scenes:
+    learning_adventure_grade6.json   — a generic learning level
+    photosynthesis_scene.json        — photosynthesis themed game
+    science_grade6.json              — science game for grade 6
+    space___solar_system_grade6.json — space / solar system game
+
+  Any scene file here is playable by:
+    1. In Build Mode: type the path in the toolbar and click Load
+    2. Press F5 to reload the current scene
+    3. In the React UI: it appears in the Scene List
+
+data/profiles/
+  Student profile JSON files for the educational tracking system.
+    student_001.json — example profile with score, badges, completed scenes
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 7 — VENDOR FOLDER  ( vendor/ )
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Third-party libraries included directly in the project (no installation).
+
+vendor/imgui/
+  Dear ImGui — the immediate-mode GUI library used for all editor UI.
+  "Immediate mode" means every button, panel, and widget is drawn and
+  checked every single frame. There is no persistent widget state.
+  Uses the standard branch (NOT the docking branch).
+
+  Key files:
+    imgui.h / imgui.cpp        — core ImGui API
+    imgui_draw.cpp             — draws triangles and shapes
+    imgui_widgets.cpp          — buttons, sliders, inputs, etc.
+    imgui_tables.cpp           — table widgets
+    backends/imgui_impl_sdl2.cpp     — connects ImGui to SDL2 events
+    backends/imgui_impl_sdlrenderer2.cpp — renders ImGui with SDL2 renderer
+
+vendor/nlohmann/json.hpp
+  nlohmann/json — a single-header JSON library for C++17.
+  Used everywhere in the engine for reading and writing JSON files.
+  Features used: json::parse(), json.dump(), json.contains(),
+  json.value(), structured bindings on JSON arrays and objects.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 8 — SETUP AND CONFIG FILES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+─────────────────────────────────────────────────────────────────────────
+setup.sh
+─────────────────────────────────────────────────────────────────────────
+One-time setup script. Runs once on a fresh machine.
+  1. sudo apt install — SDL2, SDL2_ttf, SDL2_image, SDL2_mixer, Python3
+  2. pip install requests fastapi uvicorn python-multipart Pillow
+  3. mkdir -p for all needed directories
+  4. python3 generate_assets.py --all (generates all sprites)
+  5. python3 generate_audio.py --all  (generates all audio)
+  6. npm install in frontend/
+
+─────────────────────────────────────────────────────────────────────────
+requirements.txt
+─────────────────────────────────────────────────────────────────────────
+Master dependency list for sharing with collaborators.
+Lists: system packages (apt), Python packages (pip), Node version needed.
+Not used by pip directly — it's documentation for humans.
+
+─────────────────────────────────────────────────────────────────────────
+CMakeLists.txt
+─────────────────────────────────────────────────────────────────────────
+CMake build configuration. Present but not actively used — the project
+uses a direct g++ command instead (CMake not installed on the dev machine).
+Could be used on other machines that have CMake installed.
+
+─────────────────────────────────────────────────────────────────────────
+imgui.ini
+─────────────────────────────────────────────────────────────────────────
+Auto-generated by ImGui every time you move or resize editor panels.
+Saves the position and size of every ImGui window so they appear in the
+same place next time you launch the engine.
+Do not edit manually — ImGui overwrites it automatically.
+
+─────────────────────────────────────────────────────────────────────────
+exports/
+─────────────────────────────────────────────────────────────────────────
+Created when you click "Export Game" in Build Mode.
+Each export creates a subfolder: exports/<scene_id>/
+Contains a self-contained, runnable copy of the game:
+  EduEngine        — the engine binary
+  run.sh           — launch script (sets DISPLAY, passes scene path)
+  data/scenes/     — the scene JSON
+  assets/images/   — sprites for the theme
+  assets/audio/    — sounds for the theme
+  assets/fonts/    — the font file
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 9 — HOW EVERYTHING CONNECTS  (data flow)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+FLOW 1 — User types a prompt in the desktop engine (Mock Mode)
+──────────────────────────────────────────────────────────────
+  EditorTools (UI)
+    → user types "biology game grade 5" → clicks Generate
+    → PromptSystem.Generate(config)
+      → background thread: GenerateMock()
+        → DetectTheme("biology") → SubjectTheme{name:"Biology", ...}
+        → ThemeSlug("Biology") → "biology"
+        → system("python3 generate_assets.py --theme biology")
+            → PIL draws PNGs → assets/images/biology/*.png
+        → system("python3 generate_audio.py --theme biology")
+            → wave module writes WAVs → assets/audio/biology/*.wav
+        → AudioPlayer::LoadTheme("biology") → BGM starts playing
+        → BuildScene() → JSON with all entities
+        → m_result_json = JSON string, status = Done
+    → EditorTools polls: status == Done
+    → PromptSystem.SaveToFile("data/scenes/")
+        → data/scenes/biology_grade5.json
+    → Engine.LoadScene("data/scenes/biology_grade5.json")
+        → SceneLoader.LoadScene() → creates ECS entities
+        → RenderSystem loads PNG textures on first frame
+    → Engine.SetMode(Build) → user sees the game
+
+FLOW 2 — User types a prompt and uses AI (Ollama Mode)
+───────────────────────────────────────────────────────
+  (same as above up to Generate)
+  → background thread: CallApi()
+    → writes /tmp/edu_prompt_cfg.json
+    → popen("python3 call_claude_api.py /tmp/edu_prompt_cfg.json")
+      → call_claude_api.py sends request to Ollama at localhost:11434
+      → Ollama model generates scene JSON
+      → script prints JSON to stdout
+    → C++ reads stdout → json::parse() to validate
+    → m_result_json = validated JSON, status = Done
+  → (same as above: save, load, render)
+
+FLOW 3 — Web UI generates a game
+─────────────────────────────────
+  Browser (React)
+    → user types prompt → clicks Generate
+    → POST /api/generate → backend/main.py
+      → generate_scene(prompt, subject, grade) from call_claude_api.py
+        → Ollama generates JSON
+      → returns scene JSON to browser
+    → user clicks Save → POST /api/save → data/scenes/<id>.json
+    → user opens desktop engine → F5 loads the new scene
+
+FLOW 4 — Export and share a game
+──────────────────────────────────
+  Build Mode → Export Game button
+    → Export modal opens → user picks destination with kdialog
+    → DoExportGame() → copies all files to dest/<scene_id>/
+    → user zips and shares dest/<scene_id>/
+    → recipient: bash run.sh
+      → ./EduEngine "data/scenes/<id>.json"
+      → main.cpp: argc >= 2 → skips Prompt Mode → loads scene directly
+      → game plays immediately in Build Mode (ready to switch to Play)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 10 — QUICK REFERENCE: FILE → PURPOSE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  File                            What it does
+  ──────────────────────────────  ─────────────────────────────────────
+  src/main.cpp                    Entry point, registers systems
+  src/core/Engine.h/cpp           Game loop, SDL2, owns everything
+  src/core/ecs/Entity.h           Entity ID definition
+  src/core/ecs/Component.h        All data components (Transform, Sprite...)
+  src/core/ecs/Registry.h         Stores all entities and components
+  src/core/ecs/System.h           Base class for all systems
+  src/editor/EditorTools.h/cpp    ImGui editor UI (all panels)
+  src/scene/SceneLoader.h/cpp     Reads/writes scene JSON files
+  src/prompt/PromptSystem.h/cpp   AI generation (mock + Ollama)
+  src/audio/AudioPlayer.h/cpp     SDL2_mixer sound wrapper
+  src/systems/InputSystem.h       Keyboard → player movement
+  src/systems/PhysicsSystem.h     Gravity and AABB collision
+  src/systems/EnemySystem.h       Enemy patrol movement
+  src/systems/TriggerSystem.h/cpp Collectibles, info zones, goal detection
+  src/systems/RenderSystem.h      Draws sprites and text
+  src/educational/...             Student tracking (scaffolded, future)
+  generate_assets.py              Creates themed PNG sprites (Pillow)
+  generate_audio.py               Creates themed WAV files (built-in wave)
+  call_claude_api.py              AI bridge: calls Ollama, returns scene JSON
+  backend/main.py                 FastAPI web server (5 REST endpoints)
+  frontend/src/App.jsx            React app root, state management
+  frontend/src/components/        GeneratorPanel, SceneList, JsonViewer
+  data/scenes/*.json              Saved playable game levels
+  data/profiles/*.json            Student progress profiles
+  assets/images/<theme>/          PNG sprites for each educational theme
+  assets/audio/<theme>/           WAV sounds for each educational theme
+  assets/fonts/                   OpenSans font for UI text
+  vendor/imgui/                   Dear ImGui — editor UI library
+  vendor/nlohmann/json.hpp        JSON parsing library for C++
+  exports/<scene_id>/             Self-contained exported game packages
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

@@ -1,16 +1,16 @@
 """
-Client SDK for Teacher AI Agent API
-This module provides a Python client for interacting with the Teacher AI Agent API
+Client SDK for EduEngine AI Agent API
+This module provides a Python client for interacting with the EduEngine AI Agent API
 """
 
 import requests
 from typing import Optional, Dict, Any
 import json
 
-class TeacherAIClient:
-    """Client for interacting with Teacher AI Agent API"""
+class EduEngineAIClient:
+    """Client for interacting with EduEngine AI Agent API"""
     
-    def __init__(self, base_url: str = "http://localhost:8000"):
+    def __init__(self, base_url: str = "http://localhost:8001"):
         self.base_url = base_url
         self.session = requests.Session()
         
@@ -22,95 +22,131 @@ class TeacherAIClient:
         except Exception as e:
             print(f"Health check failed: {e}")
             return False
+    
+    def generate_scene(self, prompt: str, grade: Optional[str] = None, 
+                      subject: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Generate an EduEngine scene from a natural language prompt
+        
+        Args:
+            prompt: Natural language description (e.g., "teach photosynthesis for grade 5")
+            grade: Optional override for grade level (1-12)
+            subject: Optional override for subject/theme
             
-    def summarize_concept(self, concept: str, level: str = "intermediate") -> Dict[str, Any]:
-        """Summarize a teaching concept"""
+        Returns:
+            Dict containing success status and scene data
+        """
         payload = {
-            "concept": concept,
-            "level": level
+            "prompt": prompt,
+            "grade": grade,
+            "subject": subject
         }
         response = self.session.post(
-            f"{self.base_url}/summarize",
+            f"{self.base_url}/generate-scene",
             json=payload
         )
         response.raise_for_status()
         return response.json()
+    
+    def generate_scene_and_save(self, prompt: str, grade: Optional[str] = None,
+                               subject: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Generate an EduEngine scene and save it as a JSON file
         
-    def generate_quiz(self, concept: str, num_questions: int = 5) -> Dict[str, Any]:
-        """Generate a quiz game"""
+        Args:
+            prompt: Natural language description
+            grade: Optional grade override
+            subject: Optional subject override
+            
+        Returns:
+            Dict containing success status, filepath, and scene data
+        """
         payload = {
-            "concept": concept,
-            "game_type": "quiz",
-            "num_questions": num_questions
+            "prompt": prompt,
+            "grade": grade,
+            "subject": subject
         }
         response = self.session.post(
-            f"{self.base_url}/generate-quiz",
+            f"{self.base_url}/generate-scene-file",
             json=payload
         )
         response.raise_for_status()
         return response.json()
-        
-    def generate_puzzle(self, concept: str) -> Dict[str, Any]:
-        """Generate a puzzle game"""
-        payload = {
-            "concept": concept
-        }
-        response = self.session.post(
-            f"{self.base_url}/generate-puzzle",
-            json=payload
-        )
+    
+    def list_themes(self) -> Dict[str, Any]:
+        """Get list of all available educational themes"""
+        response = self.session.get(f"{self.base_url}/themes")
         response.raise_for_status()
         return response.json()
-        
-    def generate_speed_game(self, concept: str, num_challenges: int = 10) -> Dict[str, Any]:
-        """Generate a speed challenge game"""
-        payload = {
-            "concept": concept,
-            "game_type": "speed",
-            "num_questions": num_challenges
-        }
-        response = self.session.post(
-            f"{self.base_url}/generate-speed",
-            json=payload
-        )
+    
+    def get_theme_details(self, theme_name: str) -> Dict[str, Any]:
+        """Get detailed information about a specific theme"""
+        response = self.session.get(f"{self.base_url}/theme/{theme_name}")
         response.raise_for_status()
         return response.json()
+    
+    def validate_scene(self, scene: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Validate a scene JSON against the EduEngine specification
         
-    def generate_learning_module(self, concept: str, level: str = "intermediate") -> Dict[str, Any]:
-        """Generate a complete learning module with all games"""
-        payload = {
-            "concept": concept,
-            "level": level
-        }
+        Args:
+            scene: The scene JSON object to validate
+            
+        Returns:
+            Dict containing validation results
+        """
         response = self.session.post(
-            f"{self.base_url}/generate-module",
-            json=payload
+            f"{self.base_url}/validate-scene",
+            json=scene
         )
         response.raise_for_status()
         return response.json()
 
+
+# Backward compatibility alias
+class TeacherAIClient(EduEngineAIClient):
+    """Backward compatibility alias for EduEngineAIClient"""
+    pass
+
+
 # Example usage
 if __name__ == "__main__":
-    client = TeacherAIClient()
+    client = EduEngineAIClient()
     
     # Check if API is running
     if client.health_check():
         print("✅ API is healthy")
         
-        # Example: Generate a learning module
-        print("\n📚 Generating learning module for 'Photosynthesis'...")
-        result = client.generate_learning_module(
-            concept="Photosynthesis",
-            level="intermediate"
-        )
+        # Example 1: Generate a scene
+        print("\n🎮 Generating EduEngine scene for 'Photosynthesis Grade 5'...")
+        result = client.generate_scene(prompt="teach photosynthesis for grade 5 students")
         
         if result["success"]:
-            module = result["data"]
-            print(f"✅ Module generated successfully!")
-            print(f"   Title: {module['summary']['title']}")
-            print(f"   Games: {list(module['games'].keys())}")
-            print(f"   Total duration: {module['estimated_total_duration']} seconds")
+            scene = result["data"]
+            print(f"✅ Scene generated successfully!")
+            print(f"   ID: {scene['scene_meta']['id']}")
+            print(f"   Title: {scene['scene_meta']['title']}")
+            print(f"   Grade: {scene['scene_meta']['grade']}")
+            print(f"   Entities: {len(scene['entities'])}")
         else:
-            print("❌ Failed to generate module")
+            print("❌ Failed to generate scene")
+        
+        # Example 2: List themes
+        print("\n📋 Available themes:")
+        themes = client.list_themes()
+        if themes["success"]:
+            for theme_name in list(themes["themes"].keys())[:5]:
+                print(f"   - {theme_name}")
+        
+        # Example 3: Validate a scene
+        print("\n✅ Validating scene...")
+        if result["success"]:
+            validation = client.validate_scene(scene)
+            if validation["valid"]:
+                print(f"✅ Scene is valid!")
+            else:
+                print(f"❌ Scene has {validation['error_count']} errors")
+                for error in validation["errors"]:
+                    print(f"   - {error}")
     else:
         print("❌ API is not healthy. Make sure the server is running on http://localhost:8000")

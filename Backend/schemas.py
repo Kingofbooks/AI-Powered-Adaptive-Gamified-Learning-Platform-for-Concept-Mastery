@@ -697,3 +697,27 @@ class Badge(BaseModel):
     current_progress: int
     max_progress: int
     earned: bool
+
+
+# ============================================
+# AI GAME GENERATION MODELS
+# ============================================
+
+class GamePromptRequest(BaseModel):
+    """Request to generate game from text prompt"""
+    prompt: str
+    grade: Optional[str] = None
+    subject: Optional[str] = None
+
+
+class GameGenerationResponse(BaseModel):
+    """Response from AI game generation"""
+    success: bool
+    scene_id: Optional[str] = None
+    title: Optional[str] = None
+    subject: Optional[str] = None
+    grade: Optional[str] = None
+    scene_file: Optional[str] = None
+    entities_count: Optional[int] = None
+    message: str
+    error: Optional[str] = None

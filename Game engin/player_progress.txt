@@ -1,5 +1,0 @@
-currentLevelId=1
-totalPoints=0
-badges=
-attempts=
-mastery=

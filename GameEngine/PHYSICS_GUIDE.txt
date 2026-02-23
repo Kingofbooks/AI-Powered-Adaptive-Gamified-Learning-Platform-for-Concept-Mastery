@@ -1,0 +1,624 @@
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EduEngine — Physics, Systems & Gameplay Guide
+  How everything moves, collides, and interacts
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+WHO THIS GUIDE IS FOR
+─────────────────────
+  • You — tweaking the physics feel of a game you generated
+  • Your friend — building or training a custom AI that generates scenes
+  • Anyone writing scene JSON by hand
+
+COORDINATE SYSTEM
+─────────────────
+  Origin (0, 0)   →  TOP-LEFT corner of the screen
+  X grows         →  right
+  Y grows         →  DOWN  ← this is important for jump/gravity direction!
+
+  Screen is 1280 × 720 pixels.
+
+  So:
+    x:  0  = left edge        x: 1280 = right edge
+    y:  0  = top edge         y:  720 = bottom edge
+    y: 620 = where the ground sits (100 px above bottom)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART 1  —  SYSTEMS OVERVIEW
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Every frame, systems run in priority order (lowest number first):
+
+  Priority   System           What it does
+  ────────   ───────────────  ──────────────────────────────────────────
+     0       InputSystem      Reads keyboard → sets player velocity/jump
+    10       PhysicsSystem    Applies gravity, integrates positions,
+                              resolves AABB collisions with platforms
+    15       EnemySystem      Moves patrol enemies between min/max X
+    20       TriggerSystem    Detects player overlapping collectibles,
+                              info zones, and the goal flag
+   100       RenderSystem     Draws everything to the screen
+
+Order matters: Input runs before Physics so the player's velocity is set
+before positions are integrated.  TriggerSystem checks after movement so
+overlaps are current.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART 2  —  PHYSICS SYSTEM IN DETAIL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The PhysicsSystem does two things each frame:
+  A) Apply gravity and move every dynamic entity
+  B) Push dynamic entities out of any platform they overlap (AABB collision)
+
+Step A — Gravity and Integration
+──────────────────────────────────────────────────────────────────────────
+  For each entity with TransformComponent + RigidBodyComponent
+  (and is_kinematic = false):
+
+    velocity_y += gravity × gravity_scale × delta_time
+    x          += velocity_x × delta_time
+    y          += velocity_y × delta_time
+
+  Default gravity: 980.0  (pixels per second per second, like real 9.8 m/s²
+                            but in pixel units where 1 m ≈ 100 px)
+
+  delta_time: typically ~0.016 seconds at 60 fps
+
+Step B — AABB Collision Resolution
+──────────────────────────────────────────────────────────────────────────
+  AABB = Axis-Aligned Bounding Box = a plain rectangle.
+  Every physics entity has a ColliderComponent that defines this rectangle.
+
+  The system checks the moving entity's box against every platform's box.
+  When they overlap, it pushes the entity out along the SHORTEST axis:
+
+    Landing on top of a platform:
+      entity.y is moved up until its bottom edge touches the platform top.
+      velocity_y is set to 0.
+      on_ground is set to true.
+
+    Hitting the underside of a solid platform:
+      entity.y is moved down.
+      velocity_y is set to 0.
+
+    Hitting the side of a solid platform (wall):
+      entity.x is moved left or right.
+      velocity_x is set to 0.
+
+  One-way platforms (is_one_way: true):
+    The entity can only land ON TOP.
+    Falling through from below is allowed.
+    Horizontal collision (walls) is ignored.
+    Use for floating platforms the player can jump up through.
+
+  Solid platforms (is_one_way: false):
+    Full collision on all sides.
+    Use for ground, walls, ceiling.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART 3  —  ALL PHYSICS COMPONENTS AND THEIR FIELDS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+─────────────────────────────────────────────────────────────────────────
+TransformComponent  (every visible entity has this)
+─────────────────────────────────────────────────────────────────────────
+  Field      Type    Default  Meaning
+  ─────────  ──────  ───────  ─────────────────────────────────────────
+  x          float   0        World X position (pixels from left)
+  y          float   0        World Y position (pixels from top)
+  scale_x    float   1.0      Horizontal stretch (1.0 = original size)
+  scale_y    float   1.0      Vertical stretch
+  rotation   float   0        Degrees clockwise (visual only — no effect
+                              on physics or colliders)
+
+  JSON example:
+    "transform": { "x": 80, "y": 520, "scale_x": 1.0, "scale_y": 1.0 }
+
+─────────────────────────────────────────────────────────────────────────
+RigidBodyComponent  (makes an entity fall and move with physics)
+─────────────────────────────────────────────────────────────────────────
+  Field          Type   Default  Meaning
+  ─────────────  ─────  ───────  ─────────────────────────────────────
+  velocity_x     float  0        Current horizontal speed (px/s)
+                                  Positive = right, Negative = left
+  velocity_y     float  0        Current vertical speed (px/s)
+                                  Positive = DOWN, Negative = UP
+  mass           float  1.0      Not used in current physics
+                                  (reserved for future impulse forces)
+  gravity_scale  float  1.0      Multiplier on gravity for this entity.
+                                  0.0 = floats, 0.5 = half gravity,
+                                  2.0 = twice as heavy, -1.0 = falls up!
+  is_kinematic   bool   false     If true: the entity ignores gravity
+                                  and is never moved by PhysicsSystem.
+                                  Use for moving platforms (future) or
+                                  entities you move manually.
+  on_ground      bool   false     Read-only: set to true each frame the
+                                  entity is standing on a platform.
+                                  Used by InputSystem to allow jumping.
+
+  JSON example (player):
+    "rigid_body": { "mass": 1.0, "gravity_scale": 1.0 }
+
+  JSON example (floaty enemy):
+    "rigid_body": { "mass": 1.0, "gravity_scale": 0.0 }
+
+─────────────────────────────────────────────────────────────────────────
+ColliderComponent  (defines the hit-box for physics and triggers)
+─────────────────────────────────────────────────────────────────────────
+  Field       Type   Default  Meaning
+  ──────────  ─────  ───────  ─────────────────────────────────────────
+  offset_x    float  0        Shift the collider right from entity origin
+  offset_y    float  0        Shift the collider down from entity origin
+  width       float  32       Collider width in pixels
+  height      float  32       Collider height in pixels
+  is_trigger  bool   false    If true: overlap is detected (TriggerSystem)
+                              but NO physical push-out happens.
+                              Use for collectibles, info signs, goal flag.
+
+  IMPORTANT: The collider is positioned at:
+    collider_left   = transform.x + offset_x
+    collider_top    = transform.y + offset_y
+    collider_right  = collider_left + width
+    collider_bottom = collider_top  + height
+
+  The collider does NOT automatically match the sprite size.
+  You must set width/height to match your scaled sprite manually.
+
+  JSON example (player collider, 24×32 px):
+    "collider": { "width": 24, "height": 32, "offset_x": 0, "is_trigger": false }
+
+  JSON example (ground, 1280×100):
+    "collider": { "width": 1280, "height": 100, "offset_x": 0, "is_trigger": false }
+
+  JSON example (collectible trigger):
+    "collider": { "width": 28, "height": 28, "offset_x": 0, "is_trigger": true }
+
+─────────────────────────────────────────────────────────────────────────
+PlatformComponent  (marks static collision surfaces)
+─────────────────────────────────────────────────────────────────────────
+  Field       Type   Default  Meaning
+  ──────────  ─────  ───────  ─────────────────────────────────────────
+  is_one_way  bool   false    See Part 2 above.
+                              false = solid on all sides (ground, walls)
+                              true  = land on top only (floating platforms)
+
+  JSON example (ground):
+    "platform": { "is_one_way": false }
+
+  JSON example (floating platform):
+    "platform": { "is_one_way": true }
+
+  A platform entity needs: TransformComponent + ColliderComponent + PlatformComponent
+  It does NOT need RigidBodyComponent (platforms are static).
+
+─────────────────────────────────────────────────────────────────────────
+PlayerTagComponent  (movement and jump settings)
+─────────────────────────────────────────────────────────────────────────
+  Field           Type   Default  Meaning
+  ──────────────  ─────  ───────  ─────────────────────────────────────
+  move_speed      float  220      Horizontal speed in pixels per second.
+                                  Higher = faster player.
+  jump_force      float  -580     Vertical velocity applied on jump.
+                                  NEGATIVE because Y grows downward.
+                                  More negative = higher jump.
+  max_jumps       int    2        How many jumps before landing required.
+                                  1 = single jump, 2 = double jump,
+                                  3 = triple jump, etc.
+  current_jumps   int    0        Runtime counter — do not set in JSON.
+
+  JSON example (default player):
+    "player_tag": { "move_speed": 220, "jump_force": -580, "max_jumps": 2 }
+
+  JSON example (slow, high jumper for young grades):
+    "player_tag": { "move_speed": 160, "jump_force": -700, "max_jumps": 3 }
+
+  JSON example (fast, low jump for older grades):
+    "player_tag": { "move_speed": 300, "jump_force": -450, "max_jumps": 1 }
+
+─────────────────────────────────────────────────────────────────────────
+EnemyComponent  (patrol between two X positions)
+─────────────────────────────────────────────────────────────────────────
+  Field          Type   Default  Meaning
+  ─────────────  ─────  ───────  ─────────────────────────────────────
+  patrol_min_x   float  0        Leftmost X the enemy walks to
+  patrol_max_x   float  400      Rightmost X the enemy walks to
+  speed          float  80       Movement speed in pixels per second
+  moving_right   bool   true     Starting direction (auto-flips at edges)
+
+  Enemies move left-right forever between patrol_min_x and patrol_max_x.
+  They do NOT fall with gravity in the current engine (no RigidBody).
+  They do NOT hurt the player yet (contact damage is not implemented).
+  They are purely visual obstacles that add complexity to navigation.
+
+  JSON example:
+    "enemy": { "patrol_min_x": 400, "patrol_max_x": 800, "speed": 80.0 }
+
+  An enemy entity needs: TransformComponent + SpriteComponent +
+                         ColliderComponent + EnemyComponent.
+
+─────────────────────────────────────────────────────────────────────────
+CollectibleComponent  (items the player walks into to collect)
+─────────────────────────────────────────────────────────────────────────
+  Field        Type    Default  Meaning
+  ───────────  ──────  ───────  ─────────────────────────────────────
+  point_value  int     10       Score points added on collection
+  label        string  ""       Educational term shown in log on pickup
+  collected    bool    false    Runtime flag — do not set in JSON
+
+  When player overlaps the collider:
+    • sprite becomes invisible
+    • score increases by point_value
+    • collect.wav plays
+    • label is printed to the console log
+
+  Collider must have is_trigger: true.
+
+  JSON example:
+    "collectible": { "point_value": 15, "label": "Chloroplast" }
+
+─────────────────────────────────────────────────────────────────────────
+InfoZoneComponent  (shows a text popup when player enters the zone)
+─────────────────────────────────────────────────────────────────────────
+  Field       Type    Default  Meaning
+  ──────────  ──────  ───────  ─────────────────────────────────────
+  text        string  ""       The educational fact / message to show
+  repeat      bool    false    false = show only once per play session
+                               true  = show every time player re-enters
+  show_timer  float   0        Runtime — how many seconds left to show
+  triggered   bool    false    Runtime — has it been shown already?
+
+  Popup stays on screen for 5 seconds.
+  Collider must have is_trigger: true.
+
+  JSON example:
+    "info_zone": { "text": "Photosynthesis converts CO2 into glucose using sunlight.", "repeat": false }
+
+─────────────────────────────────────────────────────────────────────────
+GoalComponent  (end-of-level trigger)
+─────────────────────────────────────────────────────────────────────────
+  No configurable fields — just add the component:
+    "goal": {}
+
+  When player overlaps the goal collider:
+    • "Level Complete! Great job!" popup appears for 4 seconds
+    • goal.wav plays
+    • Score is logged to the console
+
+  Only one goal entity should exist per scene.
+  Collider must have is_trigger: true.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART 4  —  TUNING PHYSICS FEEL: RECIPE TABLE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Below are copy-paste ready JSON values for common "feels".
+Adjust in the scene JSON, then press F5 to reload instantly.
+
+WORLD SETTINGS
+──────────────────────────────────────────────────────────────────────────
+  Standard platformer (default):
+    "world_settings": { "gravity": 980.0, "background_color": [30,30,50,255] }
+
+  Moon (low gravity — great for space games):
+    "world_settings": { "gravity": 160.0, "background_color": [10,10,30,255] }
+
+  Heavy / tense atmosphere:
+    "world_settings": { "gravity": 1400.0, "background_color": [60,20,20,255] }
+
+  Zero gravity (floaty puzzle):
+    "world_settings": { "gravity": 0.0, "background_color": [10,20,40,255] }
+
+PLAYER FEEL PRESETS
+──────────────────────────────────────────────────────────────────────────
+  Beginner / young grades (easy to control):
+    "player_tag": { "move_speed": 160, "jump_force": -650, "max_jumps": 3 }
+
+  Standard grade 4-6:
+    "player_tag": { "move_speed": 220, "jump_force": -580, "max_jumps": 2 }
+
+  Challenging / older grades:
+    "player_tag": { "move_speed": 280, "jump_force": -520, "max_jumps": 1 }
+
+  Superhero / fun mode:
+    "player_tag": { "move_speed": 350, "jump_force": -800, "max_jumps": 5 }
+
+  Slow and floaty (space / moon theme):
+    "player_tag": { "move_speed": 150, "jump_force": -350, "max_jumps": 4 }
+    (combine with gravity: 160.0)
+
+ENEMY SPEED PRESETS
+──────────────────────────────────────────────────────────────────────────
+  Easy (grades 1-3):
+    "enemy": { "patrol_min_x": 400, "patrol_max_x": 700, "speed": 50.0 }
+
+  Medium (grades 4-6):
+    "enemy": { "patrol_min_x": 300, "patrol_max_x": 800, "speed": 80.0 }
+
+  Hard (grades 7+):
+    "enemy": { "patrol_min_x": 200, "patrol_max_x": 900, "speed": 130.0 }
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART 5  —  CONTROLS (PLAY MODE)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Action            Keys
+  ────────────────  ──────────────────────────────────────
+  Move left         A  or  ← Arrow
+  Move right        D  or  → Arrow
+  Jump              Space  or  W  or  ↑ Arrow
+  Double jump       Press jump again while airborne
+  Reload scene      F5  (any mode)
+
+Controls are hard-coded in InputSystem.h.  They are not configurable
+from JSON — they apply to every game.
+
+Jump mechanics detail:
+  • Pressing jump applies jump_force to velocity_y instantly.
+  • The jump key is consumed (one press = one jump impulse).
+  • Holding the key does not keep jumping — you must release and re-press.
+  • max_jumps controls how many jumps can chain before landing resets.
+  • Landing on a platform resets the jump counter to 0.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART 6  —  LEVEL LAYOUT FORMULAS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The screen is 1280 × 720.  Here are useful reference positions:
+
+  Vertical zones (Y values):
+    Sky / high area:    y  80 – 200
+    Upper platforms:    y 250 – 380
+    Middle platforms:   y 380 – 480
+    Lower platforms:    y 480 – 560
+    Ground level:       y 620   (bottom = y + 100 = 720)
+
+  Horizontal zones (X values):
+    Left start:         x  80
+    Left third:         x 350
+    Centre:             x 580
+    Right third:        x 820
+    Near goal:          x 1100
+    Goal flag:          x 1160
+
+Minimum jump distances (with default move_speed: 220, jump_force: -580):
+  Maximum horizontal reach per jump:  ~250 – 320 px
+  Maximum height per jump:            ~120 – 150 px
+
+  Rule of thumb for platform gaps:
+    Easy gap:    ≤ 150 px horizontal,  ≤ 80 px vertical
+    Medium gap:  ≤ 220 px horizontal,  ≤ 120 px vertical
+    Hard gap:    ≤ 290 px horizontal,  ≤ 150 px vertical
+
+Standard platform size:
+  Image:   32 × 20 px (platform.png)
+  Recommended scale_x: 4–8 (128–256 px wide)
+  Recommended scale_y: 1–2 (20–40 px tall)
+
+  In JSON:
+    "transform": { "x": 300, "y": 400, "scale_x": 6.0, "scale_y": 1.5 },
+    "collider":  { "width": 192, "height": 30, "is_trigger": false }
+    (width  = 32 × scale_x = 32 × 6 = 192)
+    (height = 20 × scale_y = 20 × 1.5 = 30)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART 7  —  COMPLETE ENTITY BLUEPRINTS (copy-paste ready)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PLAYER ENTITY
+──────────────────────────────────────────────────────────────────────────
+{
+  "name": "Player",
+  "tags": ["player"],
+  "components": {
+    "transform":  { "x": 80, "y": 520, "scale_x": 1.0, "scale_y": 1.0 },
+    "sprite":     { "texture": "assets/images/biology/player.png",
+                    "color": [255,255,255,255], "layer": 5 },
+    "rigid_body": { "mass": 1.0, "gravity_scale": 1.0 },
+    "collider":   { "width": 24, "height": 32, "offset_x": 0, "is_trigger": false },
+    "player_tag": { "move_speed": 220, "jump_force": -580, "max_jumps": 2 }
+  }
+}
+
+GROUND (full-width solid floor)
+──────────────────────────────────────────────────────────────────────────
+{
+  "name": "Ground",
+  "tags": ["platform"],
+  "components": {
+    "transform": { "x": 0, "y": 620, "scale_x": 40.0, "scale_y": 5.0 },
+    "sprite":    { "texture": "assets/images/biology/platform.png",
+                   "color": [255,255,255,255], "layer": 2 },
+    "collider":  { "width": 1280, "height": 100, "offset_x": 0, "is_trigger": false },
+    "platform":  { "is_one_way": false }
+  }
+}
+
+FLOATING PLATFORM (one-way, player can jump up through)
+──────────────────────────────────────────────────────────────────────────
+{
+  "name": "Platform_1",
+  "tags": ["platform"],
+  "components": {
+    "transform": { "x": 300, "y": 460, "scale_x": 6.0, "scale_y": 1.5 },
+    "sprite":    { "texture": "assets/images/biology/platform.png",
+                   "color": [255,255,255,255], "layer": 2 },
+    "collider":  { "width": 192, "height": 30, "offset_x": 0, "is_trigger": false },
+    "platform":  { "is_one_way": true }
+  }
+}
+
+COLLECTIBLE ITEM
+──────────────────────────────────────────────────────────────────────────
+{
+  "name": "Collectible_Chloroplast",
+  "tags": ["collectible"],
+  "components": {
+    "transform":   { "x": 350, "y": 430, "scale_x": 1.0, "scale_y": 1.0 },
+    "sprite":      { "texture": "assets/images/biology/collectible_0.png",
+                     "color": [255,220,50,255], "layer": 4 },
+    "collider":    { "width": 28, "height": 28, "offset_x": 0, "is_trigger": true },
+    "collectible": { "point_value": 15, "label": "Chloroplast" }
+  }
+}
+
+INFO SIGN (educational fact popup)
+──────────────────────────────────────────────────────────────────────────
+{
+  "name": "InfoSign_1",
+  "tags": ["info"],
+  "components": {
+    "transform":  { "x": 500, "y": 590, "scale_x": 1.0, "scale_y": 1.0 },
+    "sprite":     { "texture": "", "color": [80, 200, 120, 200], "layer": 4 },
+    "collider":   { "width": 48, "height": 48, "offset_x": 0, "is_trigger": true },
+    "info_zone":  { "text": "Chloroplasts absorb sunlight to make food for the plant.",
+                    "repeat": false }
+  }
+}
+
+PATROL ENEMY
+──────────────────────────────────────────────────────────────────────────
+{
+  "name": "Enemy_1",
+  "tags": ["enemy"],
+  "components": {
+    "transform": { "x": 600, "y": 588, "scale_x": 1.0, "scale_y": 1.0 },
+    "sprite":    { "texture": "assets/images/biology/enemy.png",
+                   "color": [255,80,80,255], "layer": 3 },
+    "collider":  { "width": 30, "height": 32, "offset_x": 0, "is_trigger": false },
+    "enemy":     { "patrol_min_x": 450, "patrol_max_x": 850, "speed": 80.0 }
+  }
+}
+
+GOAL FLAG (end of level)
+──────────────────────────────────────────────────────────────────────────
+{
+  "name": "GoalFlag",
+  "tags": ["goal"],
+  "components": {
+    "transform": { "x": 1160, "y": 558, "scale_x": 1.0, "scale_y": 1.0 },
+    "sprite":    { "texture": "assets/images/biology/goal.png",
+                   "color": [255,255,255,255], "layer": 4 },
+    "collider":  { "width": 40, "height": 60, "offset_x": 0, "is_trigger": true },
+    "goal":      {}
+  }
+}
+
+BACKGROUND (always first entity, x:0 y:0)
+──────────────────────────────────────────────────────────────────────────
+{
+  "name": "Background",
+  "tags": ["background"],
+  "components": {
+    "transform": { "x": 0, "y": 0, "scale_x": 1.0, "scale_y": 1.0 },
+    "sprite":    { "texture": "assets/images/biology/background.png",
+                   "color": [255,255,255,255], "layer": 0 }
+  }
+}
+(Note: no collider, no rigid_body — the background is purely visual)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART 8  —  COMMON PHYSICS BUGS AND FIXES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Problem: Player falls through the floor
+  → Ground collider width is less than 1280.
+     Fix: "collider": { "width": 1280, ... }
+  → Ground transform y is too low (below 720).
+     Fix: "transform": { "y": 620, ... }
+  → Missing "platform" component on the ground entity.
+     Fix: add  "platform": { "is_one_way": false }
+  → Ground entity is missing "collider" component entirely.
+
+Problem: Player can't jump up through a platform (should be one-way)
+  → Platform has is_one_way: false.
+     Fix: "platform": { "is_one_way": true }
+
+Problem: Player gets stuck inside platforms
+  → Collider width/height doesn't match the scaled sprite.
+  → The player's starting position (x, y) is inside a platform.
+     Fix: move player start to y: 520 (above the ground at y: 620).
+
+Problem: Player slides on the ground (keeps moving when keys released)
+  → This is correct behaviour — InputSystem sets velocity_x = 0 when
+     no keys are pressed.  If it persists, check there's no external
+     force being applied.
+
+Problem: Player jumps infinitely (no landing)
+  → max_jumps is set very high.  Try max_jumps: 2.
+  → Platform colliders are triggers (is_trigger: true).
+     Platforms must have is_trigger: false to cause landing.
+
+Problem: Enemy falls off the screen
+  → The ground collider isn't wide enough to cover the patrol range.
+  → The enemy's patrol_max_x goes past x: 1280.
+     Fix: keep patrol_max_x ≤ 1200.
+
+Problem: Collectible doesn't disappear when touched
+  → Collider is_trigger is false.
+     Fix: "collider": { "is_trigger": true }
+  → Missing "collectible" component.
+
+Problem: Info popup never shows
+  → Collider is_trigger is false.  Fix: set is_trigger: true.
+  → The text field in info_zone is empty.
+
+Problem: Physics feels too floaty / too heavy
+  → Adjust gravity in world_settings.
+     Floaty → lower gravity (e.g. 400)
+     Heavy  → higher gravity (e.g. 1400)
+  → Adjust jump_force.  Floaty → less negative (e.g. -400)
+                          Heavy  → more negative (e.g. -700)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART 9  —  FOR AI MODEL TRAINING: RULES SUMMARY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+These are hard rules the AI must follow when generating scene JSON:
+
+COORDINATE RULES
+  [ ] X: 0 (left) to 1280 (right)
+  [ ] Y: 0 (top)  to 720  (bottom)  ← Y grows DOWN
+  [ ] Player start: x:80, y:520 (above ground)
+  [ ] Ground: x:0, y:620, collider width:1280, height:100
+  [ ] Goal flag: x:1160, y:558 (near right edge)
+
+PHYSICS RULES
+  [ ] Every entity that moves needs: rigid_body + collider
+  [ ] Every platform needs: collider + platform (no rigid_body)
+  [ ] jump_force MUST BE NEGATIVE (e.g. -580)  ← Y grows down!
+  [ ] Gravity must be positive (e.g. 980.0)
+  [ ] Ground: is_one_way: false   Floating platforms: is_one_way: true
+
+TRIGGER RULES
+  [ ] Collectibles:  collider.is_trigger = true
+  [ ] Info zones:    collider.is_trigger = true
+  [ ] Goal flag:     collider.is_trigger = true
+  [ ] Ground:        collider.is_trigger = false
+  [ ] Platforms:     collider.is_trigger = false
+  [ ] Enemies:       collider.is_trigger = false
+
+REQUIRED ENTITIES (exactly one of each unless noted)
+  [ ] Background  (tags: ["background"], layer 0, no collider)
+  [ ] Player      (tags: ["player"],     layer 5)
+  [ ] Ground      (tags: ["platform"],   solid floor)
+  [ ] 3–5 Floating platforms
+  [ ] 3–5 Collectibles
+  [ ] 1–3 Info signs
+  [ ] 1 Goal flag
+  [ ] 0–2 Enemies (only grade >= 5)
+
+SCALE RULES (collider must match scaled sprite)
+  [ ] Background: scale_x: 1.0, scale_y: 1.0 (1280×720 image fills screen)
+  [ ] Ground:     scale_x: 40,  scale_y: 5   → collider 1280×100
+  [ ] Platform:   scale_x: 4–8, scale_y: 1–2 → collider = 32×scale_x by 20×scale_y
+  [ ] Player:     scale_x: 1.0, scale_y: 1.0 → collider 24×32
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

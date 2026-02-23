@@ -1,0 +1,743 @@
+{
+  "entities": [
+    {
+      "components": {
+        "sprite": {
+          "color": [
+            255,
+            255,
+            255,
+            255
+          ],
+          "layer": 0,
+          "texture": "assets/images/space/background.png"
+        },
+        "transform": {
+          "scale_x": 1.0,
+          "scale_y": 1.0,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "name": "Background",
+      "tags": [
+        "background"
+      ]
+    },
+    {
+      "components": {
+        "collider": {
+          "height": 32,
+          "offset_x": 4,
+          "width": 24
+        },
+        "player_tag": {
+          "jump_force": -580,
+          "max_jumps": 2,
+          "move_speed": 220
+        },
+        "rigid_body": {
+          "gravity_scale": 1.0,
+          "mass": 1.0
+        },
+        "sprite": {
+          "color": [
+            255,
+            255,
+            255,
+            255
+          ],
+          "layer": 5,
+          "texture": "assets/images/space/player.png"
+        },
+        "transform": {
+          "scale_x": 1.5,
+          "scale_y": 1.5,
+          "x": 80,
+          "y": 520
+        }
+      },
+      "name": "Player",
+      "tags": [
+        "player"
+      ]
+    },
+    {
+      "components": {
+        "collider": {
+          "height": 100,
+          "width": 1280
+        },
+        "platform": {
+          "is_one_way": false
+        },
+        "sprite": {
+          "color": [
+            40,
+            40,
+            100,
+            255
+          ],
+          "layer": 2,
+          "texture": "assets/images/space/platform.png"
+        },
+        "transform": {
+          "scale_x": 40.0,
+          "scale_y": 5.0,
+          "x": 0,
+          "y": 620
+        }
+      },
+      "name": "Ground",
+      "tags": [
+        "platform"
+      ]
+    },
+    {
+      "components": {
+        "collider": {
+          "height": 20,
+          "width": 160.0
+        },
+        "platform": {
+          "is_one_way": true
+        },
+        "sprite": {
+          "color": [
+            40,
+            40,
+            100,
+            255
+          ],
+          "layer": 2,
+          "texture": "assets/images/space/platform.png"
+        },
+        "transform": {
+          "scale_x": 5.0,
+          "scale_y": 1.0,
+          "x": 120.0,
+          "y": 480.0
+        }
+      },
+      "name": "Platform_1",
+      "tags": [
+        "platform"
+      ]
+    },
+    {
+      "components": {
+        "collider": {
+          "height": 20,
+          "width": 140.0
+        },
+        "platform": {
+          "is_one_way": true
+        },
+        "sprite": {
+          "color": [
+            40,
+            40,
+            100,
+            255
+          ],
+          "layer": 2,
+          "texture": "assets/images/space/platform.png"
+        },
+        "transform": {
+          "scale_x": 4.375,
+          "scale_y": 1.0,
+          "x": 340.0,
+          "y": 400.0
+        }
+      },
+      "name": "Platform_2",
+      "tags": [
+        "platform"
+      ]
+    },
+    {
+      "components": {
+        "collider": {
+          "height": 20,
+          "width": 180.0
+        },
+        "platform": {
+          "is_one_way": true
+        },
+        "sprite": {
+          "color": [
+            40,
+            40,
+            100,
+            255
+          ],
+          "layer": 2,
+          "texture": "assets/images/space/platform.png"
+        },
+        "transform": {
+          "scale_x": 5.625,
+          "scale_y": 1.0,
+          "x": 560.0,
+          "y": 330.0
+        }
+      },
+      "name": "Platform_3",
+      "tags": [
+        "platform"
+      ]
+    },
+    {
+      "components": {
+        "collider": {
+          "height": 20,
+          "width": 130.0
+        },
+        "platform": {
+          "is_one_way": true
+        },
+        "sprite": {
+          "color": [
+            40,
+            40,
+            100,
+            255
+          ],
+          "layer": 2,
+          "texture": "assets/images/space/platform.png"
+        },
+        "transform": {
+          "scale_x": 4.0625,
+          "scale_y": 1.0,
+          "x": 780.0,
+          "y": 450.0
+        }
+      },
+      "name": "Platform_4",
+      "tags": [
+        "platform"
+      ]
+    },
+    {
+      "components": {
+        "collider": {
+          "height": 20,
+          "width": 170.0
+        },
+        "platform": {
+          "is_one_way": true
+        },
+        "sprite": {
+          "color": [
+            40,
+            40,
+            100,
+            255
+          ],
+          "layer": 2,
+          "texture": "assets/images/space/platform.png"
+        },
+        "transform": {
+          "scale_x": 5.3125,
+          "scale_y": 1.0,
+          "x": 1000.0,
+          "y": 370.0
+        }
+      },
+      "name": "Platform_5",
+      "tags": [
+        "platform"
+      ]
+    },
+    {
+      "components": {
+        "collectible": {
+          "label": "Mercury",
+          "point_value": 15
+        },
+        "collider": {
+          "height": 28,
+          "is_trigger": true,
+          "width": 28
+        },
+        "sprite": {
+          "color": [
+            220,
+            180,
+            60,
+            220
+          ],
+          "layer": 4,
+          "texture": "assets/images/space/collectible_0.png"
+        },
+        "text_label": {
+          "color": [
+            255,
+            255,
+            200,
+            255
+          ],
+          "font_size": 13,
+          "layer": 6,
+          "text": "Mercury"
+        },
+        "transform": {
+          "x": 150.0,
+          "y": 360.0
+        }
+      },
+      "name": "Collect_Mercury",
+      "tags": [
+        "collectible"
+      ]
+    },
+    {
+      "components": {
+        "collectible": {
+          "label": "Venus",
+          "point_value": 15
+        },
+        "collider": {
+          "height": 28,
+          "is_trigger": true,
+          "width": 28
+        },
+        "sprite": {
+          "color": [
+            220,
+            180,
+            60,
+            220
+          ],
+          "layer": 4,
+          "texture": "assets/images/space/collectible_1.png"
+        },
+        "text_label": {
+          "color": [
+            255,
+            255,
+            200,
+            255
+          ],
+          "font_size": 13,
+          "layer": 6,
+          "text": "Venus"
+        },
+        "transform": {
+          "x": 287.5,
+          "y": 280.0
+        }
+      },
+      "name": "Collect_Venus",
+      "tags": [
+        "collectible"
+      ]
+    },
+    {
+      "components": {
+        "collectible": {
+          "label": "Earth",
+          "point_value": 15
+        },
+        "collider": {
+          "height": 28,
+          "is_trigger": true,
+          "width": 28
+        },
+        "sprite": {
+          "color": [
+            220,
+            180,
+            60,
+            220
+          ],
+          "layer": 4,
+          "texture": "assets/images/space/collectible_2.png"
+        },
+        "text_label": {
+          "color": [
+            255,
+            255,
+            200,
+            255
+          ],
+          "font_size": 13,
+          "layer": 6,
+          "text": "Earth"
+        },
+        "transform": {
+          "x": 425.0,
+          "y": 440.0
+        }
+      },
+      "name": "Collect_Earth",
+      "tags": [
+        "collectible"
+      ]
+    },
+    {
+      "components": {
+        "collectible": {
+          "label": "Mars",
+          "point_value": 15
+        },
+        "collider": {
+          "height": 28,
+          "is_trigger": true,
+          "width": 28
+        },
+        "sprite": {
+          "color": [
+            220,
+            180,
+            60,
+            220
+          ],
+          "layer": 4,
+          "texture": "assets/images/space/collectible_3.png"
+        },
+        "text_label": {
+          "color": [
+            255,
+            255,
+            200,
+            255
+          ],
+          "font_size": 13,
+          "layer": 6,
+          "text": "Mars"
+        },
+        "transform": {
+          "x": 562.5,
+          "y": 310.0
+        }
+      },
+      "name": "Collect_Mars",
+      "tags": [
+        "collectible"
+      ]
+    },
+    {
+      "components": {
+        "collectible": {
+          "label": "Jupiter",
+          "point_value": 15
+        },
+        "collider": {
+          "height": 28,
+          "is_trigger": true,
+          "width": 28
+        },
+        "sprite": {
+          "color": [
+            220,
+            180,
+            60,
+            220
+          ],
+          "layer": 4,
+          "texture": "assets/images/space/collectible_4.png"
+        },
+        "text_label": {
+          "color": [
+            255,
+            255,
+            200,
+            255
+          ],
+          "font_size": 13,
+          "layer": 6,
+          "text": "Jupiter"
+        },
+        "transform": {
+          "x": 700.0,
+          "y": 390.0
+        }
+      },
+      "name": "Collect_Jupiter",
+      "tags": [
+        "collectible"
+      ]
+    },
+    {
+      "components": {
+        "collectible": {
+          "label": "Saturn",
+          "point_value": 15
+        },
+        "collider": {
+          "height": 28,
+          "is_trigger": true,
+          "width": 28
+        },
+        "sprite": {
+          "color": [
+            220,
+            180,
+            60,
+            220
+          ],
+          "layer": 4,
+          "texture": "assets/images/space/collectible_5.png"
+        },
+        "text_label": {
+          "color": [
+            255,
+            255,
+            200,
+            255
+          ],
+          "font_size": 13,
+          "layer": 6,
+          "text": "Saturn"
+        },
+        "transform": {
+          "x": 837.5,
+          "y": 360.0
+        }
+      },
+      "name": "Collect_Saturn",
+      "tags": [
+        "collectible"
+      ]
+    },
+    {
+      "components": {
+        "collider": {
+          "height": 36,
+          "is_trigger": true,
+          "width": 36
+        },
+        "info_zone": {
+          "repeat": false,
+          "text": "The Sun is a medium-sized star at the centre of our solar system."
+        },
+        "sprite": {
+          "color": [
+            220,
+            180,
+            60,
+            220
+          ],
+          "layer": 3
+        },
+        "text_label": {
+          "color": [
+            30,
+            20,
+            5,
+            255
+          ],
+          "font_size": 20,
+          "layer": 5,
+          "text": "?"
+        },
+        "transform": {
+          "x": 380.0,
+          "y": 590.0
+        }
+      },
+      "name": "InfoSign_1",
+      "tags": [
+        "info"
+      ]
+    },
+    {
+      "components": {
+        "collider": {
+          "height": 36,
+          "is_trigger": true,
+          "width": 36
+        },
+        "info_zone": {
+          "repeat": false,
+          "text": "Mars has the largest volcano in the solar system: Olympus Mons."
+        },
+        "sprite": {
+          "color": [
+            220,
+            180,
+            60,
+            220
+          ],
+          "layer": 3
+        },
+        "text_label": {
+          "color": [
+            30,
+            20,
+            5,
+            255
+          ],
+          "font_size": 20,
+          "layer": 5,
+          "text": "?"
+        },
+        "transform": {
+          "x": 680.0,
+          "y": 590.0
+        }
+      },
+      "name": "InfoSign_2",
+      "tags": [
+        "info"
+      ]
+    },
+    {
+      "components": {
+        "collider": {
+          "height": 36,
+          "is_trigger": true,
+          "width": 36
+        },
+        "info_zone": {
+          "repeat": false,
+          "text": "Jupiter is so large that all other planets could fit inside it."
+        },
+        "sprite": {
+          "color": [
+            220,
+            180,
+            60,
+            220
+          ],
+          "layer": 3
+        },
+        "text_label": {
+          "color": [
+            30,
+            20,
+            5,
+            255
+          ],
+          "font_size": 20,
+          "layer": 5,
+          "text": "?"
+        },
+        "transform": {
+          "x": 950.0,
+          "y": 590.0
+        }
+      },
+      "name": "InfoSign_3",
+      "tags": [
+        "info"
+      ]
+    },
+    {
+      "components": {
+        "collider": {
+          "height": 32,
+          "width": 30
+        },
+        "enemy": {
+          "patrol_max_x": 550.0,
+          "patrol_min_x": 380.0,
+          "speed": 70.0
+        },
+        "sprite": {
+          "color": [
+            255,
+            255,
+            255,
+            230
+          ],
+          "layer": 4,
+          "texture": "assets/images/space/enemy.png"
+        },
+        "transform": {
+          "x": 400.0,
+          "y": 588.0
+        }
+      },
+      "name": "Enemy_1",
+      "tags": [
+        "enemy"
+      ]
+    },
+    {
+      "components": {
+        "collider": {
+          "height": 32,
+          "width": 30
+        },
+        "enemy": {
+          "patrol_max_x": 880.0,
+          "patrol_min_x": 680.0,
+          "speed": 85.0
+        },
+        "sprite": {
+          "color": [
+            255,
+            255,
+            255,
+            230
+          ],
+          "layer": 4,
+          "texture": "assets/images/space/enemy.png"
+        },
+        "transform": {
+          "x": 700.0,
+          "y": 588.0
+        }
+      },
+      "name": "Enemy_2",
+      "tags": [
+        "enemy"
+      ]
+    },
+    {
+      "components": {
+        "collider": {
+          "height": 60,
+          "is_trigger": true,
+          "width": 40
+        },
+        "goal": null,
+        "sprite": {
+          "color": [
+            220,
+            180,
+            60,
+            255
+          ],
+          "layer": 4,
+          "texture": "assets/images/space/goal.png"
+        },
+        "text_label": {
+          "color": [
+            255,
+            255,
+            255,
+            255
+          ],
+          "layer": 6,
+          "text": "GOAL"
+        },
+        "transform": {
+          "x": 1160.0,
+          "y": 558.0
+        }
+      },
+      "name": "Goal_Flag",
+      "tags": [
+        "goal"
+      ]
+    }
+  ],
+  "scene_meta": {
+    "ai_prompt": "A polatform about the solar system for 5th grade",
+    "grade": "8",
+    "id": "space___solar_system_grade8",
+    "subject": "space & solar system",
+    "title": "Space & solar system — Grade 8"
+  },
+  "world_settings": {
+    "background_color": [
+      5,
+      5,
+      25,
+      255
+    ],
+    "gravity": 980.0
+  }
+}

@@ -1,0 +1,294 @@
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EduEngine — AI Integration Guide  (Ollama Edition — FREE & LOCAL)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+This guide uses Ollama — completely free, runs on your machine,
+works offline, no API key, no monthly bill.
+
+OVERVIEW
+────────
+Three ways to use AI scene generation in EduEngine:
+
+  A)  C++ Engine  (desktop app, type prompt → game created instantly)
+  B)  Web UI      (React + FastAPI backend, open in browser)
+  C)  Both        (web UI saves JSON → engine loads it with F5)
+
+Architecture:
+
+  [React :3000] ──fetch──► [FastAPI :8000] ──requests──► [Ollama :11434]
+                                  │                       [llama3.1 / etc]
+                                  │ saves JSON
+                                  ▼
+                           [data/scenes/*.json]
+                                  ▲
+  [EduEngine C++] ─popen──► [call_claude_api.py] ──requests──► [Ollama]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART 0  —  INSTALL OLLAMA  (do this once before anything else)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Linux / WSL:
+  curl -fsSL https://ollama.com/install.sh | sh
+
+Mac:
+  Download from https://ollama.com/download  (drag to Applications)
+
+Windows:
+  Download OllamaSetup.exe from https://ollama.com/download
+
+After install — pull a model (choose one):
+  ollama pull llama3.1          # recommended — best quality (~4.7 GB)
+  ollama pull mistral           # good alternative (~4.1 GB)
+  ollama pull qwen2.5           # excellent at structured JSON (~4.4 GB)
+  ollama pull phi3.5            # smallest / fastest (~2.2 GB)
+
+Verify it works:
+  ollama run llama3.1 "Say hello"
+  → should print a greeting
+
+Keep Ollama running in the background:
+  ollama serve    (or it starts automatically after install on Mac/Windows)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART 1  —  C++ ENGINE WITH AI  (Prompt Mode)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Step 1. Install the only Python requirement
+  pip install requests
+
+Step 2. Make sure Ollama is running and the model is pulled
+  ollama serve          # (already running? skip this)
+  ollama pull llama3.1  # (already pulled? skip this)
+
+Step 3. Test call_claude_api.py manually
+  echo '{"prompt":"photosynthesis game","subject":"biology","grade":5}' \
+       > /tmp/test_cfg.json
+  python3 call_claude_api.py /tmp/test_cfg.json
+
+  → Should print a large JSON object. If it works here, it works in-engine.
+
+Step 4. Build the engine (if not already built — see README)
+
+Step 5. Launch the engine
+  DISPLAY=:1 ./EduEngine
+
+Step 6. In the Prompt Mode panel:
+  - Click the "Mock → AI" toggle to enable AI mode
+  - Type your game description
+  - Click "Generate Game"
+  - The engine calls call_claude_api.py, gets JSON from Ollama, loads the scene
+
+
+OPTIONAL — change which model is used:
+  export OLLAMA_MODEL=mistral           # faster
+  export OLLAMA_MODEL=llama3.1:70b     # better quality (needs more RAM)
+  export OLLAMA_MODEL=qwen2.5          # very good at JSON
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART 2  —  FASTAPI BACKEND
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Step 1. Install backend dependencies
+  pip install -r backend/requirements.txt
+
+Step 2. Make sure Ollama is running  (see Part 0)
+
+Step 3. Start the backend (from the GameEngine/ root folder)
+  uvicorn backend.main:app --reload --port 8000
+
+Step 4. Verify it is running
+  curl http://localhost:8000/api/health
+  →  {
+       "status": "ok",
+       "ollama": { "reachable": true, "host": "http://localhost:11434",
+                   "model": "llama3.1" }
+     }
+
+  If ollama.reachable is false: run `ollama serve` in another terminal.
+
+API Endpoints
+─────────────
+  GET  /api/health          — liveness + Ollama status check
+  GET  /api/themes          — list of 10 available themes
+  GET  /api/scenes          — list scenes saved in data/scenes/
+  POST /api/generate        — generate a scene with Ollama AI
+  POST /api/save            — save a scene to data/scenes/
+  DELETE /api/scenes/{id}   — delete a saved scene
+
+POST /api/generate  —  example
+  curl -X POST http://localhost:8000/api/generate \
+    -H "Content-Type: application/json" \
+    -d '{"prompt":"teach photosynthesis","subject":"biology","grade":5}'
+
+  Response: full scene JSON object
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART 3  —  REACT FRONTEND
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Requirements: Node.js >= 18  (install from https://nodejs.org)
+
+Step 1. Install JS dependencies (one-time)
+  cd frontend/
+  npm install
+
+Step 2. Make sure the FastAPI backend is running (Part 2 above)
+
+Step 3. Start the React dev server
+  npm run dev
+  → Opens at http://localhost:3000
+
+  The Vite proxy forwards /api/* to FastAPI :8000 automatically.
+
+Step 4. Use the UI
+  +--------------+--------------------------------+----------------+
+  |  Saved Scenes|  Generator Panel               |  JSON Preview  |
+  |              |                                |                |
+  |  list of all |  [Prompt textarea]             |  Colorized     |
+  |  .json files |  [Subject] [Grade]             |  scene JSON    |
+  |  in          |  [Generate] [Save] [Download]  |                |
+  |  data/scenes |                                |  Entity count  |
+  +--------------+--------------------------------+----------------+
+
+  * Generate  — Ollama generates the scene JSON (5-30 seconds locally)
+  * Save      — writes to data/scenes/ (engine reloads with F5)
+  * Download  — saves the .json file to your browser Downloads folder
+
+Note: Generation takes longer than cloud APIs because it runs locally.
+      llama3.1 on a mid-range GPU: ~10-20 seconds.
+      CPU only: ~30-90 seconds. Use phi3.5 for faster results on CPU.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART 4  —  CONNECTING YOUR FRIEND'S CUSTOM MODEL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Option A — Friend's model is Ollama-compatible:
+  export OLLAMA_MODEL=friend-model-name
+  export OLLAMA_HOST=http://friend-server-ip:11434
+  No code changes needed.
+
+Option B — Friend's model runs on a different server:
+  Ask your friend what port their server uses and what model ID.
+  Set OLLAMA_HOST to their server URL.
+  If they use a different API format, edit _call_ollama() in
+  call_claude_api.py to match their endpoint.
+
+Option C — Friend built a Python package/SDK:
+  Edit the generate_scene() function in call_claude_api.py to call
+  their SDK instead of _call_ollama().
+  The rest of the system (C++ bridge, backend, React) stays the same.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART 5  —  ENVIRONMENT VARIABLES REFERENCE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  OLLAMA_HOST    Ollama server URL  (default: http://localhost:11434)
+  OLLAMA_MODEL   Model to use       (default: llama3.1)
+
+Add to ~/.bashrc for persistence:
+  echo 'export OLLAMA_MODEL=llama3.1' >> ~/.bashrc
+  source ~/.bashrc
+
+Model quality guide:
+  phi3.5         ->  fastest, smallest RAM, good for testing
+  mistral        ->  fast, good quality, reliable JSON
+  llama3.1       ->  best quality for JSON, recommended  *
+  qwen2.5        ->  excellent at structured output
+  llama3.1:70b   ->  highest quality, needs 40+ GB RAM
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART 6  —  FILE STRUCTURE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  GameEngine/
+  |-- call_claude_api.py       <- AI bridge (Ollama, no API key)
+  |-- AI_INTEGRATION_GUIDE.txt <- this file
+  |-- backend/
+  |   |-- main.py              <- FastAPI web server
+  |   +-- requirements.txt     <- pip deps (fastapi, uvicorn, requests)
+  |-- frontend/
+  |   |-- package.json
+  |   |-- vite.config.js       <- /api proxy to :8000
+  |   |-- index.html
+  |   +-- src/
+  |       |-- main.jsx
+  |       |-- App.jsx
+  |       +-- components/
+  |           |-- GeneratorPanel.jsx
+  |           |-- SceneList.jsx
+  |           +-- JsonViewer.jsx
+  |-- src/                     <- C++ engine source
+  |-- data/scenes/             <- JSON scene files (shared by engine + web)
+  |-- assets/images/           <- generated sprites per theme
+  +-- assets/audio/            <- generated WAV files per theme
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART 7  —  QUICK START CHECKLIST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  [ ] Install Ollama:      curl -fsSL https://ollama.com/install.sh | sh
+  [ ] Pull model:          ollama pull llama3.1
+  [ ] Install pip deps:    pip install requests fastapi uvicorn python-multipart
+  [ ] Install node deps:   cd frontend && npm install
+
+  Terminal 1 — Ollama (if not already running as a service):
+    ollama serve
+
+  Terminal 2 — Backend:
+    cd GameEngine/
+    uvicorn backend.main:app --reload --port 8000
+
+  Terminal 3 — Frontend:
+    cd GameEngine/frontend/
+    npm run dev
+    -> Open http://localhost:3000
+
+  Terminal 4 — C++ Engine (optional, same machine):
+    cd GameEngine/
+    DISPLAY=:1 ./EduEngine
+    # Press F5 to reload any scene saved from the web UI
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TROUBLESHOOTING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Problem: "Cannot connect to Ollama at http://localhost:11434"
+  -> Run: ollama serve    (in a separate terminal)
+  -> On Mac/Windows Ollama usually runs automatically after install
+
+Problem: Generation takes too long (> 2 minutes)
+  -> Switch to a faster model: export OLLAMA_MODEL=phi3.5
+  -> Check if your GPU is being used: ollama ps
+
+Problem: "model not found" / 404 error
+  -> Pull the model first: ollama pull llama3.1
+  -> List available models: ollama list
+
+Problem: AI returns invalid JSON (retried 3x and still failed)
+  -> Happens sometimes with smaller models
+  -> Try a more capable model: export OLLAMA_MODEL=llama3.1 or qwen2.5
+
+Problem: FastAPI /api/health shows ollama.reachable = false
+  -> Ollama server is not running
+  -> Run: ollama serve
+
+Problem: React shows "Failed to fetch" errors
+  -> Make sure FastAPI is running on port 8000
+  -> Make sure you used npm run dev (not npm run build)
+
+Problem: Engine shows coloured boxes instead of sprites
+  -> Run: pip install pillow && python3 generate_assets.py --all
+
+Problem: "call_claude_api.py failed (exit 1)" in engine
+  -> Test manually:
+     echo '{"prompt":"test","subject":"","grade":5}' > /tmp/t.json
+     python3 call_claude_api.py /tmp/t.json
+  -> Read the error message printed to stderr
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

@@ -1,0 +1,685 @@
+{
+  "scene_meta": {
+    "id": "photosynthesis_grade5",
+    "title": "Photosynthesis \u2014 Grade 5",
+    "subject": "photosynthesis",
+    "grade": "5",
+    "ai_prompt": "teach photosynthesis for grade 5"
+  },
+  "world_settings": {
+    "gravity": 980.0,
+    "background_color": [
+      12,
+      28,
+      12,
+      255
+    ]
+  },
+  "entities": [
+    {
+      "name": "Background",
+      "tags": [
+        "background"
+      ],
+      "components": {
+        "transform": {
+          "x": 0,
+          "y": 0,
+          "scale_x": 1.0,
+          "scale_y": 1.0
+        },
+        "sprite": {
+          "texture": "assets/images/photosynthesis/background.png",
+          "color": [
+            255,
+            255,
+            255,
+            255
+          ],
+          "layer": 0
+        }
+      }
+    },
+    {
+      "name": "Player",
+      "tags": [
+        "player"
+      ],
+      "components": {
+        "transform": {
+          "x": 80,
+          "y": 520,
+          "scale_x": 1.5,
+          "scale_y": 1.5
+        },
+        "sprite": {
+          "texture": "assets/images/photosynthesis/player.png",
+          "color": [
+            255,
+            255,
+            255,
+            255
+          ],
+          "layer": 5
+        },
+        "rigid_body": {
+          "mass": 1.0,
+          "gravity_scale": 1.0
+        },
+        "collider": {
+          "offset_x": 4,
+          "width": 24,
+          "height": 32
+        },
+        "player_tag": {
+          "move_speed": 220,
+          "jump_force": -580,
+          "max_jumps": 2
+        }
+      }
+    },
+    {
+      "name": "Ground",
+      "tags": [
+        "platform"
+      ],
+      "components": {
+        "transform": {
+          "x": 0,
+          "y": 620,
+          "scale_x": 40.0,
+          "scale_y": 5.0
+        },
+        "sprite": {
+          "texture": "assets/images/photosynthesis/platform.png",
+          "color": [
+            30,
+            90,
+            30,
+            255
+          ],
+          "layer": 2
+        },
+        "collider": {
+          "width": 1280,
+          "height": 100
+        },
+        "platform": {
+          "is_one_way": false
+        }
+      }
+    },
+    {
+      "name": "Platform_1",
+      "tags": [
+        "platform"
+      ],
+      "components": {
+        "transform": {
+          "x": 120,
+          "y": 580,
+          "scale_x": 5.0,
+          "scale_y": 1.0
+        },
+        "sprite": {
+          "texture": "assets/images/photosynthesis/platform.png",
+          "color": [
+            30,
+            90,
+            30,
+            255
+          ],
+          "layer": 2
+        },
+        "collider": {
+          "width": 160,
+          "height": 20
+        },
+        "platform": {
+          "is_one_way": true
+        }
+      }
+    },
+    {
+      "name": "Platform_2",
+      "tags": [
+        "platform"
+      ],
+      "components": {
+        "transform": {
+          "x": 400,
+          "y": 480,
+          "scale_x": 6.25,
+          "scale_y": 1.0
+        },
+        "sprite": {
+          "texture": "assets/images/photosynthesis/platform.png",
+          "color": [
+            30,
+            90,
+            30,
+            255
+          ],
+          "layer": 2
+        },
+        "collider": {
+          "width": 200,
+          "height": 20
+        },
+        "platform": {
+          "is_one_way": true
+        }
+      }
+    },
+    {
+      "name": "Platform_3",
+      "tags": [
+        "platform"
+      ],
+      "components": {
+        "transform": {
+          "x": 680,
+          "y": 380,
+          "scale_x": 7.5,
+          "scale_y": 1.0
+        },
+        "sprite": {
+          "texture": "assets/images/photosynthesis/platform.png",
+          "color": [
+            30,
+            90,
+            30,
+            255
+          ],
+          "layer": 2
+        },
+        "collider": {
+          "width": 240,
+          "height": 20
+        },
+        "platform": {
+          "is_one_way": true
+        }
+      }
+    },
+    {
+      "name": "Platform_4",
+      "tags": [
+        "platform"
+      ],
+      "components": {
+        "transform": {
+          "x": 960,
+          "y": 280,
+          "scale_x": 8.75,
+          "scale_y": 1.0
+        },
+        "sprite": {
+          "texture": "assets/images/photosynthesis/platform.png",
+          "color": [
+            30,
+            90,
+            30,
+            255
+          ],
+          "layer": 2
+        },
+        "collider": {
+          "width": 280,
+          "height": 20
+        },
+        "platform": {
+          "is_one_way": true
+        }
+      }
+    },
+    {
+      "name": "Collect_CO2",
+      "tags": [
+        "collectible"
+      ],
+      "components": {
+        "transform": {
+          "x": 180,
+          "y": 560
+        },
+        "sprite": {
+          "texture": "assets/images/photosynthesis/collectible_0.png",
+          "color": [
+            80,
+            220,
+            80,
+            220
+          ],
+          "layer": 4
+        },
+        "collider": {
+          "width": 28,
+          "height": 28,
+          "is_trigger": true
+        },
+        "collectible": {
+          "point_value": 15,
+          "label": "CO\u2082"
+        },
+        "text_label": {
+          "text": "CO\u2082",
+          "color": [
+            255,
+            255,
+            200,
+            255
+          ],
+          "font_size": 13,
+          "layer": 6
+        }
+      }
+    },
+    {
+      "name": "Collect_H2O",
+      "tags": [
+        "collectible"
+      ],
+      "components": {
+        "transform": {
+          "x": 480,
+          "y": 460
+        },
+        "sprite": {
+          "texture": "assets/images/photosynthesis/collectible_1.png",
+          "color": [
+            80,
+            220,
+            80,
+            220
+          ],
+          "layer": 4
+        },
+        "collider": {
+          "width": 28,
+          "height": 28,
+          "is_trigger": true
+        },
+        "collectible": {
+          "point_value": 15,
+          "label": "H\u2082O"
+        },
+        "text_label": {
+          "text": "H\u2082O",
+          "color": [
+            255,
+            255,
+            200,
+            255
+          ],
+          "font_size": 13,
+          "layer": 6
+        }
+      }
+    },
+    {
+      "name": "Collect_Sunlight",
+      "tags": [
+        "collectible"
+      ],
+      "components": {
+        "transform": {
+          "x": 740,
+          "y": 360
+        },
+        "sprite": {
+          "texture": "assets/images/photosynthesis/collectible_2.png",
+          "color": [
+            80,
+            220,
+            80,
+            220
+          ],
+          "layer": 4
+        },
+        "collider": {
+          "width": 28,
+          "height": 28,
+          "is_trigger": true
+        },
+        "collectible": {
+          "point_value": 15,
+          "label": "Sunlight"
+        },
+        "text_label": {
+          "text": "Sunlight",
+          "color": [
+            255,
+            255,
+            200,
+            255
+          ],
+          "font_size": 13,
+          "layer": 6
+        }
+      }
+    },
+    {
+      "name": "Collect_Glucose",
+      "tags": [
+        "collectible"
+      ],
+      "components": {
+        "transform": {
+          "x": 960,
+          "y": 260
+        },
+        "sprite": {
+          "texture": "assets/images/photosynthesis/collectible_3.png",
+          "color": [
+            80,
+            220,
+            80,
+            220
+          ],
+          "layer": 4
+        },
+        "collider": {
+          "width": 28,
+          "height": 28,
+          "is_trigger": true
+        },
+        "collectible": {
+          "point_value": 15,
+          "label": "Glucose"
+        },
+        "text_label": {
+          "text": "Glucose",
+          "color": [
+            255,
+            255,
+            200,
+            255
+          ],
+          "font_size": 13,
+          "layer": 6
+        }
+      }
+    },
+    {
+      "name": "Collect_O2",
+      "tags": [
+        "collectible"
+      ],
+      "components": {
+        "transform": {
+          "x": 1040,
+          "y": 260
+        },
+        "sprite": {
+          "texture": "assets/images/photosynthesis/collectible_4.png",
+          "color": [
+            80,
+            220,
+            80,
+            220
+          ],
+          "layer": 4
+        },
+        "collider": {
+          "width": 28,
+          "height": 28,
+          "is_trigger": true
+        },
+        "collectible": {
+          "point_value": 15,
+          "label": "O\u2082"
+        },
+        "text_label": {
+          "text": "O\u2082",
+          "color": [
+            255,
+            255,
+            200,
+            255
+          ],
+          "font_size": 13,
+          "layer": 6
+        }
+      }
+    },
+    {
+      "name": "Collect_Chlorophyll",
+      "tags": [
+        "collectible"
+      ],
+      "components": {
+        "transform": {
+          "x": 1140,
+          "y": 260
+        },
+        "sprite": {
+          "texture": "assets/images/photosynthesis/collectible_0.png",
+          "color": [
+            80,
+            220,
+            80,
+            220
+          ],
+          "layer": 4
+        },
+        "collider": {
+          "width": 28,
+          "height": 28,
+          "is_trigger": true
+        },
+        "collectible": {
+          "point_value": 15,
+          "label": "Chlorophyll"
+        },
+        "text_label": {
+          "text": "Chlorophyll",
+          "color": [
+            255,
+            255,
+            200,
+            255
+          ],
+          "font_size": 13,
+          "layer": 6
+        }
+      }
+    },
+    {
+      "name": "InfoSign_1",
+      "tags": [
+        "info"
+      ],
+      "components": {
+        "transform": {
+          "x": 380,
+          "y": 590
+        },
+        "sprite": {
+          "color": [
+            220,
+            180,
+            60,
+            220
+          ],
+          "layer": 3
+        },
+        "collider": {
+          "width": 36,
+          "height": 36,
+          "is_trigger": true
+        },
+        "text_label": {
+          "text": "?",
+          "color": [
+            30,
+            20,
+            5,
+            255
+          ],
+          "font_size": 20,
+          "layer": 5
+        },
+        "info_zone": {
+          "text": "Photosynthesis converts light energy into chemical energy stored as glucose.",
+          "repeat": false
+        }
+      }
+    },
+    {
+      "name": "InfoSign_2",
+      "tags": [
+        "info"
+      ],
+      "components": {
+        "transform": {
+          "x": 680,
+          "y": 590
+        },
+        "sprite": {
+          "color": [
+            220,
+            180,
+            60,
+            220
+          ],
+          "layer": 3
+        },
+        "collider": {
+          "width": 36,
+          "height": 36,
+          "is_trigger": true
+        },
+        "text_label": {
+          "text": "?",
+          "color": [
+            30,
+            20,
+            5,
+            255
+          ],
+          "font_size": 20,
+          "layer": 5
+        },
+        "info_zone": {
+          "text": "CO\u2082 enters leaves through tiny pores called stomata.",
+          "repeat": false
+        }
+      }
+    },
+    {
+      "name": "InfoSign_3",
+      "tags": [
+        "info"
+      ],
+      "components": {
+        "transform": {
+          "x": 950,
+          "y": 590
+        },
+        "sprite": {
+          "color": [
+            220,
+            180,
+            60,
+            220
+          ],
+          "layer": 3
+        },
+        "collider": {
+          "width": 36,
+          "height": 36,
+          "is_trigger": true
+        },
+        "text_label": {
+          "text": "?",
+          "color": [
+            30,
+            20,
+            5,
+            255
+          ],
+          "font_size": 20,
+          "layer": 5
+        },
+        "info_zone": {
+          "text": "Chlorophyll is the green pigment in leaves that captures sunlight.",
+          "repeat": false
+        }
+      }
+    },
+    {
+      "name": "Enemy_1",
+      "tags": [
+        "enemy"
+      ],
+      "components": {
+        "transform": {
+          "x": 450,
+          "y": 588
+        },
+        "sprite": {
+          "texture": "assets/images/photosynthesis/enemy.png",
+          "color": [
+            255,
+            255,
+            255,
+            230
+          ],
+          "layer": 4
+        },
+        "collider": {
+          "width": 30,
+          "height": 32
+        },
+        "rigid_body": {
+          "mass": 1.0,
+          "gravity_scale": 1.0
+        },
+        "enemy": {
+          "patrol_min_x": 430.0,
+          "patrol_max_x": 600.0,
+          "speed": 80.0
+        }
+      }
+    },
+    {
+      "name": "Goal_Flag",
+      "tags": [
+        "goal"
+      ],
+      "components": {
+        "transform": {
+          "x": 1160,
+          "y": 558
+        },
+        "sprite": {
+          "texture": "assets/images/photosynthesis/goal.png",
+          "color": [
+            80,
+            220,
+            80,
+            220
+          ],
+          "layer": 4
+        },
+        "collider": {
+          "width": 40,
+          "height": 60,
+          "is_trigger": true
+        },
+        "goal": {},
+        "text_label": {
+          "text": "GOAL",
+          "color": [
+            255,
+            255,
+            255,
+            255
+          ],
+          "layer": 6
+        }
+      }
+    }
+  ]
+}
